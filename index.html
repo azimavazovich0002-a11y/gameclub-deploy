@@ -27,7 +27,7 @@ body{margin:0;background:var(--bg-0);color:var(--txt-0);font-family:var(--font-u
 button{font-family:inherit;cursor:pointer}
 input,select{font-family:inherit}
 .num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
-
+ 
 /* shell */
 .app{display:flex;min-height:100vh}
 .sidebar{width:220px;flex-shrink:0;background:var(--bg-1);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 12px;position:sticky;top:0;height:100vh}
@@ -45,7 +45,7 @@ input,select{font-family:inherit}
 .pill.live{color:var(--green);border-color:rgba(62,207,142,0.4);background:var(--green-bg)}
 .pill.off{color:var(--amber);border-color:rgba(242,179,65,0.4);background:var(--amber-bg)}
 .user-chip{display:flex;align-items:center;gap:8px;background:var(--bg-1);border:1px solid var(--line);border-radius:20px;padding:5px 12px;font-size:13px}
-
+ 
 /* buttons */
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;border:1px solid var(--line-strong);background:var(--bg-2);color:var(--txt-0);font-weight:600;font-size:14px}
 .btn:hover{background:var(--bg-3)}
@@ -54,7 +54,7 @@ input,select{font-family:inherit}
 .btn.danger{background:var(--red-bg);border-color:rgba(242,85,90,0.5);color:var(--red)}
 .btn.small{padding:6px 12px;font-size:13px;border-radius:8px}
 .btn:disabled{opacity:0.45;cursor:not-allowed}
-
+ 
 /* cards */
 .card{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius-l);padding:18px}
 .grid{display:grid;gap:16px}
@@ -63,7 +63,7 @@ input,select{font-family:inherit}
 .kpi-accent{position:absolute;left:0;top:0;bottom:0;width:4px}
 .kpi-label{font-size:12px;color:var(--txt-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
 .kpi-value{font-size:24px;font-weight:700}
-
+ 
 /* rooms */
 .rooms-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
 .room{position:relative;overflow:hidden}
@@ -74,19 +74,21 @@ input,select{font-family:inherit}
 .status.busy{background:var(--red-bg);color:var(--red)}
 .status.reserved{background:var(--amber-bg);color:var(--amber)}
 .status.maintenance{background:var(--violet-bg);color:var(--violet)}
+.room-overtime{animation:roomPulse 1.4s ease-in-out infinite; border-color:var(--red)!important;}
+@keyframes roomPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,85,90,0);} 50%{box-shadow:0 0 0 4px rgba(242,85,90,0.28);}}
 .room-time{font-size:26px;font-weight:700}
 .room-price{font-size:13px;color:var(--txt-2);margin-top:2px}
 .room-cost{font-size:18px;font-weight:700;color:var(--teal);margin-top:10px}
 .room-actions{display:flex;gap:8px;margin-top:14px}
 .room-actions .btn{flex:1;justify-content:center}
-
+ 
 /* tables */
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--txt-2);padding:8px 10px;border-bottom:1px solid var(--line)}
 td{padding:10px;border-bottom:1px solid var(--line)}
 tr:last-child td{border-bottom:none}
 .low{color:var(--red);font-weight:700}
-
+ 
 /* modal */
 .modal-back{position:fixed;inset:0;background:rgba(4,6,10,0.72);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
 .modal{background:var(--bg-1);border:1px solid var(--line-strong);border-radius:var(--radius-l);padding:22px;width:100%;max-width:460px;max-height:90vh;overflow:auto}
@@ -99,7 +101,7 @@ tr:last-child td{border-bottom:none}
 .modal-actions .btn{flex:1;justify-content:center}
 .err{background:var(--red-bg);color:var(--red);border:1px solid rgba(242,85,90,0.4);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px}
 .ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(62,207,142,0.4);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px}
-
+ 
 /* auth */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .auth-card{width:100%;max-width:400px}
@@ -108,7 +110,7 @@ tr:last-child td{border-bottom:none}
 .seg{display:flex;background:var(--bg-2);border-radius:10px;padding:4px;margin-bottom:16px}
 .seg button{flex:1;border:none;background:none;color:var(--txt-1);padding:8px;border-radius:8px;font-weight:600;font-size:14px}
 .seg button.on{background:var(--bg-3);color:var(--txt-0)}
-
+ 
 /* pos */
 .pos{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
 @media(max-width:900px){.pos{grid-template-columns:1fr}.sidebar{display:none}}
@@ -130,24 +132,24 @@ tr:last-child td{border-bottom:none}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="text/babel" data-presets="react">
 const {useState, useEffect, useRef, useMemo} = React;
-
+ 
 /* ================= SOZLASH ================= */
 const SUPABASE_URL = "";      // Project URL
 const SUPABASE_ANON_KEY = ""; // anon public key
-
+ 
 function getCfg(){
   try{ const s = JSON.parse(localStorage.getItem("gc2_cfg")||"null"); if(s&&s.url&&s.key) return s; }catch(e){}
   if(SUPABASE_URL && SUPABASE_ANON_KEY) return {url:SUPABASE_URL, key:SUPABASE_ANON_KEY};
   return null;
 }
 function setCfg(c){ try{ c?localStorage.setItem("gc2_cfg",JSON.stringify(c)):localStorage.removeItem("gc2_cfg"); }catch(e){} }
-
+ 
 const fmt = n => (Number(n)||0).toLocaleString("uz-UZ");
 const money = n => fmt(Math.round(Number(n)||0)) + " so'm";
-
+ 
 /* ================= SUPABASE CONTEXT ================= */
 let sb = null;
-
+ 
 async function sbFetchAll(table, select="*"){
   const out = []; let from = 0;
   while(true){
@@ -159,7 +161,7 @@ async function sbFetchAll(table, select="*"){
   }
   return out;
 }
-
+ 
 /* ================= AUTH ================= */
 function AuthScreen({onReady}){
   const [cfg, setCfgState] = useState(getCfg());
@@ -172,11 +174,11 @@ function AuthScreen({onReady}){
   const [showSetup, setShowSetup] = useState(!cfg);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-
+ 
   useEffect(()=>{ if(cfg){ sb = supabase.createClient(cfg.url, cfg.key);
     sb.auth.getSession().then(({data})=>{ if(data.session) onReady(data.session); });
   }},[]);
-
+ 
   async function submit(e){
     e.preventDefault(); setErr(""); setBusy(true);
     try{
@@ -193,14 +195,14 @@ function AuthScreen({onReady}){
     }catch(e){ setErr(e.message); }
     setBusy(false);
   }
-
+ 
   function saveSetup(){
     if(!url || !key){ setErr("URL va kalitni to'ldiring"); return; }
     const c = {url:url.trim(), key:key.trim()};
     setCfg(c); setCfgState(c); setShowSetup(false); setErr("");
     window.location.reload();
   }
-
+ 
   return (
     <div className="auth-wrap">
       <div className="card auth-card">
@@ -238,7 +240,7 @@ function AuthScreen({onReady}){
     </div>
   );
 }
-
+ 
 /* ================= MODAL ================= */
 function Modal({title, onClose, children, width}){
   return (
@@ -250,7 +252,7 @@ function Modal({title, onClose, children, width}){
     </div>
   );
 }
-
+ 
 /* ================= ASOSIY ILLOVA ================= */
 const NAV = [
   {id:"rooms", label:"Xonalar"},
@@ -261,7 +263,7 @@ const NAV = [
   {id:"reports", label:"Hisobot"},
   {id:"staff", label:"Xodimlar", admin:true},
 ];
-
+ 
 function App({session}){
   const [view, setView] = useState("rooms");
   const [profile, setProfile] = useState(null);
@@ -278,13 +280,13 @@ function App({session}){
   const [modal, setModal] = useState(null); // {type, ...}
   const [now, setNow] = useState(Date.now());
   const chRef = useRef(null);
-
+ 
   const isAdmin = profile?.role === "admin";
   const isStaff = ["admin","operator","cashier"].includes(profile?.role);
   const canOperate = ["admin","operator"].includes(profile?.role);
-
+ 
   function notify(msg){ setToast(msg); setTimeout(()=>setToast(""), 3000); }
-
+ 
   async function refreshAll(){
     try{
       const [r, s, p, c, ct, sl, ex] = await Promise.all([
@@ -305,7 +307,7 @@ function App({session}){
       setExpenses(ex||[]);
     }catch(e){ console.error(e); }
   }
-
+ 
   useEffect(()=>{
     (async ()=>{
       const {data} = await sb.from("profiles").select("*").eq("id", session.user.id).single();
@@ -325,15 +327,15 @@ function App({session}){
     const t = setInterval(()=>setNow(Date.now()), 1000);
     return ()=>{ clearInterval(t); if(chRef.current) sb.removeChannel(chRef.current); };
   },[]);
-
+ 
   const isAdminRef = useRef(isAdmin);
   isAdminRef.current = isAdmin;
-
+ 
   async function loadProfiles(){
     const {data} = await sb.from("profiles").select("*").order("created_at");
     setProfiles(data||[]);
   }
-
+ 
   async function callRpc(name, params, okMsg){
     const {error} = await sb.rpc(name, params);
     if(error){ notify("Xato: " + error.message); return false; }
@@ -341,9 +343,9 @@ function App({session}){
     await refreshAll();
     return true;
   }
-
+ 
   const openSessionOf = (roomId)=> sessions.find(s=>s.room_id===roomId && s.status==="open");
-
+ 
   return (
     <div className="app">
       <aside className="sidebar">
@@ -363,7 +365,7 @@ function App({session}){
         </div>
         <button className="btn small mt" style={{width:"100%",justifyContent:"center"}} onClick={async ()=>{ await sb.auth.signOut(); location.reload(); }}>Chiqish</button>
       </aside>
-
+ 
       <main className="main">
         <div className="topbar">
           <h1>{NAV.find(n=>n.id===view)?.label}</h1>
@@ -371,9 +373,9 @@ function App({session}){
           <span className={"pill "+(live?"live":"off")}>{live?"● Live":"offline"}</span>
         </div>
         {toast && <div className="ok" style={{position:"fixed",top:16,right:16,zIndex:99}}>{toast}</div>}
-
+ 
         {view==="rooms" && (
-          <RoomsView {...{rooms, sessions, products, customers, now, canOperate, isAdmin,
+          <RoomsView {...{rooms, sessions, products, customers, now, canOperate, isAdmin, notify,
             onStart:(room)=>setModal({type:"start", room}),
             onEnd:(room)=>setModal({type:"end", room, session:openSessionOf(room.id)}),
             onAddRoom:()=>setModal({type:"addRoom"}),
@@ -399,12 +401,12 @@ function App({session}){
           <StaffView {...{profiles, callRpc}}/>
         )}
       </main>
-
+ 
       {modal?.type==="start" && (
         <StartModal room={modal.room} customers={customers}
           onClose={()=>setModal(null)}
-          onOk={async (customerId, tariff)=>{
-            const ok = await callRpc("gc_start_session",{p_room_id:modal.room.id, p_customer_id:customerId||null, p_tariff:tariff});
+          onOk={async (customerId, tariff, amount, method)=>{
+            const ok = await callRpc("gc_start_session",{p_room_id:modal.room.id, p_customer_id:customerId||null, p_tariff:tariff, p_amount:amount, p_method:method});
             if(ok) setModal(null);
           }}/>
       )}
@@ -452,11 +454,56 @@ function App({session}){
     </div>
   );
 }
-
+ 
 /* ================= XONALAR ================= */
 const ROOM_STATUS = {free:"Bo'sh", busy:"Band", reserved:"Band qilingan", maintenance:"Ta'mir"};
-
-function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdmin, onStart, onEnd, onAddRoom, onEditRoom}){
+ 
+/* Vaqt tugaganda bir marotaba signal beradi: ovozli bip + toast.
+   Web Audio API orqali — tashqi audio fayl kerak emas. */
+function playBeep(){
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 220, 440].forEach(delay=>{
+      setTimeout(()=>{
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "square";
+        osc.frequency.value = 880;
+        gain.gain.value = 0.15;
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start();
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+        osc.stop(ctx.currentTime + 0.2);
+      }, delay);
+    });
+  }catch(e){ /* audio yo'q brauzerda — jim o'tkazamiz */ }
+}
+ 
+function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdmin, notify, onStart, onEnd, onAddRoom, onEditRoom}){
+  const warnedRef = useRef({});
+  useEffect(()=>{
+    rooms.forEach(room=>{
+      const s = sessions.find(x=>x.room_id===room.id);
+      if(!(room.status==="busy" && s && s.ends_at)) { delete warnedRef.current[room.id]; return; }
+      const remainMin = Math.ceil((new Date(s.ends_at).getTime() - now)/60000);
+      if(remainMin <= 0 && !warnedRef.current[room.id]){
+        warnedRef.current[room.id] = true;
+        if(notify) notify("⏰ "+room.name+" — vaqti tugadi!");
+        playBeep();
+        if(typeof Notification !== "undefined" && Notification.permission === "granted"){
+          try{ new Notification("5Game Club", {body: room.name+" vaqti tugadi"}); }catch(e){}
+        }
+      }
+      if(remainMin > 0 && warnedRef.current[room.id]) delete warnedRef.current[room.id];
+    });
+  }, [now, rooms, sessions]);
+ 
+  useEffect(()=>{
+    if(typeof Notification !== "undefined" && Notification.permission === "default"){
+      Notification.requestPermission().catch(()=>{});
+    }
+  }, []);
+ 
   return (
     <div>
       <div style={{display:"flex",gap:10,marginBottom:16}}>
@@ -469,16 +516,22 @@ function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdm
           const mins = busy ? Math.max(1, Math.ceil((now - new Date(s.started_at).getTime())/60000)) : 0;
           const cost = busy ? Math.round(s.tariff_per_hour * mins/60) : 0;
           const cartCount = (s?.cart||[]).reduce((a,c)=>a+Number(c.qty||0),0);
+          const remainMin = (busy && s?.ends_at) ? Math.ceil((new Date(s.ends_at).getTime() - now)/60000) : null;
+          const overTime = remainMin!=null && remainMin<=0;
           return (
-            <div key={room.id} className="card room">
+            <div key={room.id} className={"card room"+(overTime?" room-overtime":"")}>
               <div className="room-top">
                 <span className="room-name">{room.name}</span>
                 <span className={"status "+room.status}>{ROOM_STATUS[room.status]||room.status}</span>
               </div>
               {busy ? (
                 <div>
-                  <div className="room-time num">{String(Math.floor(mins/60)).padStart(2,"0")}:{String(mins%60).padStart(2,"0")}</div>
-                  <div className="room-price num">{money(s.tariff_per_hour)} / soat</div>
+                  <div className="room-time num" style={overTime?{color:"var(--red)"}:{}}>
+                    {remainMin!=null
+                      ? (overTime ? "Vaqt tugadi!" : `${String(Math.floor(remainMin/60)).padStart(2,"0")}:${String(remainMin%60).padStart(2,"0")} qoldi`)
+                      : `${String(Math.floor(mins/60)).padStart(2,"0")}:${String(mins%60).padStart(2,"0")}`}
+                  </div>
+                  <div className="room-price num">{money(s.tariff_per_hour)} / soat{s.prepaid_amount?` · oldindan ${money(s.prepaid_amount)}`:""}</div>
                   <div className="room-cost num">{money(cost)}{cartCount>0 && <span className="muted"> + {cartCount} ta mahsulot</span>}</div>
                 </div>
               ) : (
@@ -501,11 +554,16 @@ function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdm
     </div>
   );
 }
-
+ 
 function StartModal({room, customers, onClose, onOk}){
   const [customerId, setCustomerId] = useState("");
   const [tariff, setTariff] = useState(room.day_price || room.hourly_rate);
+  const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState("cash");
   useEffect(()=>{ setTariff(room.day_price || room.hourly_rate); },[room.id]);
+ 
+  const plannedMin = (amount && Number(tariff)>0) ? Math.max(1, Math.round(Number(amount)/Number(tariff)*60)) : null;
+ 
   return (
     <Modal title={room.name + " — seans boshlash"} onClose={onClose}>
       <div className="field"><label>Tarif (soatiga)</label>
@@ -520,23 +578,42 @@ function StartModal({room, customers, onClose, onOk}){
           {customers.filter(c=>c.is_active).map(c=><option key={c.id} value={c.id}>{c.name} (balans: {money(c.balance)})</option>)}
         </select>
       </div>
+      <div className="field"><label>Oldindan to'lov (ixtiyoriy) — summani yozing, vaqt o'zi hisoblanadi</label>
+        <input className="input num" type="number" placeholder="masalan: 15000" value={amount} onChange={e=>setAmount(e.target.value)}/>
+        {plannedMin!=null && (
+          <div className="muted" style={{marginTop:6}}>
+            ≈ {Math.floor(plannedMin/60)} soat {plannedMin%60} daqiqaga yetadi
+          </div>
+        )}
+      </div>
+      {amount && (
+        <div className="field"><label>To'lov usuli</label>
+          <div className="seg">
+            <button type="button" className={method==="cash"?"on":""} onClick={()=>setMethod("cash")}>Naqd</button>
+            <button type="button" className={method==="card"?"on":""} onClick={()=>setMethod("card")}>Karta</button>
+            <button type="button" className={method==="balance"?"on":""} onClick={()=>setMethod("balance")}>Balans</button>
+          </div>
+        </div>
+      )}
       <div className="modal-actions">
-        <button className="btn primary" onClick={()=>onOk(customerId||null, tariff)}>Boshlash</button>
+        <button className="btn primary" onClick={()=>onOk(customerId||null, tariff, amount?Number(amount):null, method)}>Boshlash</button>
         <button className="btn" onClick={onClose}>Bekor</button>
       </div>
     </Modal>
   );
 }
-
+ 
 function EndModal({room, session, products, customers, now, onClose, onOk}){
   const [method, setMethod] = useState("cash");
   const [customerId, setCustomerId] = useState(session.customer_id||"");
   const [cart, setCart] = useState([]);
   const mins = Math.max(1, Math.ceil((now - new Date(session.started_at).getTime())/60000));
   const timeAmount = Math.round(session.tariff_per_hour * mins/60);
+  const prepaid = Number(session.prepaid_amount||0);
+  const dueTime = Math.max(0, timeAmount - prepaid);
   const cartTotal = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
-  const total = timeAmount + cartTotal;
-
+  const total = dueTime + cartTotal;
+ 
   function addToCart(p){
     setCart(prev=>{
       const ex = prev.find(c=>c.product_id===p.id);
@@ -546,7 +623,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
   }
   const setQty = (id,d)=>setCart(prev=>prev.map(c=>c.product_id===id?{...c,qty:Math.max(0,c.qty+d)}:c).filter(c=>c.qty>0));
   const cust = customers.find(c=>c.id===customerId);
-
+ 
   return (
     <Modal title={room.name + " — seansni yakunlash"} onClose={onClose} width={560}>
       <div className="grid" style={{gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
@@ -556,12 +633,14 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
           <div className="muted num">{money(session.tariff_per_hour)} / soat</div>
         </div>
         <div className="card" style={{padding:12}}>
-          <div className="kpi-label">Summa</div>
+          <div className="kpi-label">{prepaid>0 ? "Hozir to'lash kerak" : "Summa"}</div>
           <div className="num" style={{fontSize:20,fontWeight:700,color:"var(--teal)"}}>{money(total)}</div>
-          <div className="muted num">vaqt {money(timeAmount)}{cartTotal>0 && " + savat "+money(cartTotal)}</div>
+          <div className="muted num">
+            vaqt {money(timeAmount)}{prepaid>0 && ` (oldindan ${money(prepaid)} to'langan)`}{cartTotal>0 && " + savat "+money(cartTotal)}
+          </div>
         </div>
       </div>
-
+ 
       <div className="field"><label>To'lov usuli</label>
         <div className="seg">
           {[["cash","Naqd"],["card","Karta"],["balance","Balans"]].map(([v,l])=>(
@@ -578,7 +657,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
           {cust && Number(cust.balance) < total && <div className="err mt">Balans yetarli emas!</div>}
         </div>
       )}
-
+ 
       <div className="field"><label>Savatga mahsulot qo'shish (ixtiyoriy)</label>
         <div className="grid pos-grid">
           {products.filter(p=>p.active).map(p=>(
@@ -604,7 +683,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
           </div>
         )}
       </div>
-
+ 
       <div className="modal-actions">
         <button className="btn primary" disabled={method==="balance" && (!customerId || Number(cust?.balance)<total)}
           onClick={()=>onOk(method, customerId||null, cart)}>Yakunlash — {money(total)}</button>
@@ -613,7 +692,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
     </Modal>
   );
 }
-
+ 
 function RoomFormModal({room, onClose, onSave}){
   const [name, setName] = useState(room?.name||"");
   const [day, setDay] = useState(room?.day_price??room?.hourly_rate??20000);
@@ -630,7 +709,7 @@ function RoomFormModal({room, onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 /* ================= SOTUV (POS) ================= */
 function PosView({products, customers, callRpc, notify}){
   const [cart, setCart] = useState([]);
@@ -639,12 +718,12 @@ function PosView({products, customers, callRpc, notify}){
   const [busy, setBusy] = useState(false);
   const total = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
   const cust = customers.find(c=>c.id===customerId);
-
+ 
   const add = (p)=>setCart(prev=>{ const ex=prev.find(c=>c.product_id===p.id);
     if(ex) return prev.map(c=>c.product_id===p.id?{...c,qty:c.qty+1}:c);
     return [...prev,{product_id:p.id, qty:1}]; });
   const setQty = (id,d)=>setCart(prev=>prev.map(c=>c.product_id===id?{...c,qty:Math.max(0,c.qty+d)}:c).filter(c=>c.qty>0));
-
+ 
   async function pay(){
     if(!cart.length) return;
     setBusy(true);
@@ -652,7 +731,7 @@ function PosView({products, customers, callRpc, notify}){
     setBusy(false);
     if(ok) setCart([]);
   }
-
+ 
   return (
     <div className="pos">
       <div>
@@ -705,7 +784,7 @@ function PosView({products, customers, callRpc, notify}){
     </div>
   );
 }
-
+ 
 /* ================= OMBOR ================= */
 function StockView({products, isAdmin, onAdd, onRestock, onEdit}){
   const low = products.filter(p=>Number(p.stock_qty)<=Number(p.min_stock));
@@ -741,7 +820,7 @@ function StockView({products, isAdmin, onAdd, onRestock, onEdit}){
     </div>
   );
 }
-
+ 
 function ProductFormModal({product, onClose, onSave}){
   const [f, setF] = useState({name:product?.name||"", category:product?.category||"", cost:product?.cost??"", price:product?.price??"", stock_qty:product?.stock_qty??0, min_stock:product?.min_stock??5, active:product?.active??true});
   const set = (k,v)=>setF(prev=>({...prev,[k]:v}));
@@ -762,7 +841,7 @@ function ProductFormModal({product, onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 function RestockModal({product, onClose, onSave}){
   const [qty, setQty] = useState(10);
   const [cost, setCost] = useState(product.cost||"");
@@ -777,7 +856,7 @@ function RestockModal({product, onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 /* ================= MIJOZLAR ================= */
 function ClientsView({customers, isStaff, onAdd, onTopup}){
   return (
@@ -804,7 +883,7 @@ function ClientsView({customers, isStaff, onAdd, onTopup}){
     </div>
   );
 }
-
+ 
 function CustomerFormModal({onClose, onSave}){
   const [f, setF] = useState({name:"", phone:""});
   return (
@@ -818,7 +897,7 @@ function CustomerFormModal({onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 function TopupModal({customer, onClose, onSave}){
   const [amount, setAmount] = useState(50000);
   const [method, setMethod] = useState("cash");
@@ -839,7 +918,7 @@ function TopupModal({customer, onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 /* ================= KASSA ================= */
 function CashView({cash, expenses, isStaff, onExpense}){
   const today = new Date().toDateString();
@@ -875,7 +954,7 @@ function CashView({cash, expenses, isStaff, onExpense}){
     </div>
   );
 }
-
+ 
 function ExpenseModal({onClose, onSave}){
   const [f, setF] = useState({title:"", amount:"", category:"umumiy"});
   return (
@@ -896,7 +975,7 @@ function ExpenseModal({onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 /* ================= HISOBOT ================= */
 function ReportsView({cash, sales, sessions, expenses, products}){
   const today = new Date().toDateString();
@@ -938,7 +1017,7 @@ function ReportsView({cash, sales, sessions, expenses, products}){
     </div>
   );
 }
-
+ 
 /* ================= XODIMLAR ================= */
 function StaffView({profiles, callRpc}){
   const ROLE = {admin:"Admin", operator:"Operator", cashier:"Kassir"};
@@ -966,7 +1045,7 @@ function StaffView({profiles, callRpc}){
     </div>
   );
 }
-
+ 
 /* ================= ROOT ================= */
 function Root(){
   const [session, setSession] = useState(undefined); // undefined = loading
@@ -982,7 +1061,7 @@ function Root(){
   if(!session) return <AuthScreen onReady={setSession}/>;
   return <App session={session}/>;
 }
-
+ 
 ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
 </script>
 </head>
@@ -990,3 +1069,4 @@ ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
 <div id="root"></div>
 </body>
 </html>
+ 
