@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Game Club v2 — Boshqaruv paneli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-0:#0A0D12; --bg-1:#10141C; --bg-2:#151B26; --bg-3:#1B2230;
+  --line:rgba(255,255,255,0.07); --line-strong:rgba(255,255,255,0.14);
+  --txt-0:#EDEFF3; --txt-1:#A6AEC0; --txt-2:#6C7488;
+  --teal:#19D3B5; --teal-dim:#0F8A78; --violet:#8B7CFF;
+  --amber:#F2B341; --red:#F2555A; --green:#3ECF8E;
+  --teal-bg:rgba(25,211,181,0.10); --violet-bg:rgba(139,124,255,0.10);
+  --amber-bg:rgba(242,179,65,0.10); --red-bg:rgba(242,85,90,0.10); --green-bg:rgba(62,207,142,0.10);
+  --radius-s:8px; --radius-m:12px; --radius-l:18px;
+  --font-ui:'Sora',system-ui,-apple-system,sans-serif;
+  --font-num:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg-0);color:var(--txt-0);font-family:var(--font-ui);-webkit-font-smoothing:antialiased}
+#root{min-height:100%}
+button{font-family:inherit;cursor:pointer}
+input,select{font-family:inherit}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+
+/* shell */
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;flex-shrink:0;background:var(--bg-1);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 12px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 22px;font-weight:800;font-size:18px}
+.brand-dot{width:12px;height:12px;border-radius:4px;background:linear-gradient(135deg,var(--teal),var(--violet))}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;color:var(--txt-1);font-weight:500;font-size:14px;background:none;border:none;width:100%;text-align:left;margin-bottom:2px}
+.nav-item:hover{background:var(--bg-2);color:var(--txt-0)}
+.nav-item.active{background:var(--teal-bg);color:var(--teal)}
+.nav-badge{margin-left:auto;font-size:11px;background:var(--bg-3);border-radius:20px;padding:2px 8px}
+.main{flex:1;padding:24px 28px;min-width:0}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+.topbar h1{font-size:20px;margin:0;font-weight:700}
+.spacer{flex:1}
+.pill{font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid var(--line);color:var(--txt-1)}
+.pill.live{color:var(--green);border-color:rgba(62,207,142,0.4);background:var(--green-bg)}
+.pill.off{color:var(--amber);border-color:rgba(242,179,65,0.4);background:var(--amber-bg)}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--bg-1);border:1px solid var(--line);border-radius:20px;padding:5px 12px;font-size:13px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;border:1px solid var(--line-strong);background:var(--bg-2);color:var(--txt-0);font-weight:600;font-size:14px}
+.btn:hover{background:var(--bg-3)}
+.btn.primary{background:var(--teal);border-color:var(--teal);color:#04211C}
+.btn.primary:hover{background:#22e2c3}
+.btn.danger{background:var(--red-bg);border-color:rgba(242,85,90,0.5);color:var(--red)}
+.btn.small{padding:6px 12px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:0.45;cursor:not-allowed}
+
+/* cards */
+.card{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius-l);padding:18px}
+.grid{display:grid;gap:16px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.kpi{position:relative;overflow:hidden}
+.kpi-accent{position:absolute;left:0;top:0;bottom:0;width:4px}
+.kpi-label{font-size:12px;color:var(--txt-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
+.kpi-value{font-size:24px;font-weight:700}
+
+/* rooms */
+.rooms-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.room{position:relative;overflow:hidden}
+.room-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.room-name{font-weight:700;font-size:16px}
+.status{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.status.free{background:var(--green-bg);color:var(--green)}
+.status.busy{background:var(--red-bg);color:var(--red)}
+.status.reserved{background:var(--amber-bg);color:var(--amber)}
+.status.maintenance{background:var(--violet-bg);color:var(--violet)}
+.room-time{font-size:26px;font-weight:700}
+.room-price{font-size:13px;color:var(--txt-2);margin-top:2px}
+.room-cost{font-size:18px;font-weight:700;color:var(--teal);margin-top:10px}
+.room-actions{display:flex;gap:8px;margin-top:14px}
+.room-actions .btn{flex:1;justify-content:center}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--txt-2);padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:10px;border-bottom:1px solid var(--line)}
+tr:last-child td{border-bottom:none}
+.low{color:var(--red);font-weight:700}
+
+/* modal */
+.modal-back{position:fixed;inset:0;background:rgba(4,6,10,0.72);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:var(--bg-1);border:1px solid var(--line-strong);border-radius:var(--radius-l);padding:22px;width:100%;max-width:460px;max-height:90vh;overflow:auto}
+.modal h3{margin:0 0 14px;font-size:17px}
+.field{margin-bottom:12px}
+.field label{display:block;font-size:12px;color:var(--txt-2);margin-bottom:5px}
+.input,select.input{width:100%;background:var(--bg-2);border:1px solid var(--line-strong);border-radius:10px;padding:10px 12px;color:var(--txt-0);font-size:14px;outline:none}
+.input:focus{border-color:var(--teal)}
+.modal-actions{display:flex;gap:10px;margin-top:18px}
+.modal-actions .btn{flex:1;justify-content:center}
+.err{background:var(--red-bg);color:var(--red);border:1px solid rgba(242,85,90,0.4);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px}
+.ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(62,207,142,0.4);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px}
+
+/* auth */
+.auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.auth-card{width:100%;max-width:400px}
+.auth-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:22px;margin-bottom:6px}
+.auth-sub{color:var(--txt-2);font-size:13px;margin-bottom:20px}
+.seg{display:flex;background:var(--bg-2);border-radius:10px;padding:4px;margin-bottom:16px}
+.seg button{flex:1;border:none;background:none;color:var(--txt-1);padding:8px;border-radius:8px;font-weight:600;font-size:14px}
+.seg button.on{background:var(--bg-3);color:var(--txt-0)}
+
+/* pos */
+.pos{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+@media(max-width:900px){.pos{grid-template-columns:1fr}.sidebar{display:none}}
+.pos-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+.prod{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-m);padding:12px;cursor:pointer;text-align:left;color:var(--txt-0)}
+.prod:hover{border-color:var(--teal)}
+.prod .nm{font-weight:600;font-size:13px;margin-bottom:6px}
+.prod .pr{color:var(--teal);font-weight:700}
+.prod .st{font-size:11px;color:var(--txt-2);margin-top:4px}
+.cart-line{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.qty-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--line-strong);background:var(--bg-2);color:var(--txt-0);font-weight:700}
+.section-title{font-size:15px;font-weight:700;margin:0 0 12px}
+.muted{color:var(--txt-2);font-size:13px}
+.mt{margin-top:16px}
+</style>
+<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="text/babel" data-presets="react">
+const {useState, useEffect, useRef, useMemo} = React;
+
+/* ================= SOZLASH ================= */
+const SUPABASE_URL = "";      // Project URL
+const SUPABASE_ANON_KEY = ""; // anon public key
+
+function getCfg(){
+  try{ const s = JSON.parse(localStorage.getItem("gc2_cfg")||"null"); if(s&&s.url&&s.key) return s; }catch(e){}
+  if(SUPABASE_URL && SUPABASE_ANON_KEY) return {url:SUPABASE_URL, key:SUPABASE_ANON_KEY};
+  return null;
+}
+function setCfg(c){ try{ c?localStorage.setItem("gc2_cfg",JSON.stringify(c)):localStorage.removeItem("gc2_cfg"); }catch(e){} }
+
+const fmt = n => (Number(n)||0).toLocaleString("uz-UZ");
+const money = n => fmt(Math.round(Number(n)||0)) + " so'm";
+
+/* ================= SUPABASE CONTEXT ================= */
+let sb = null;
+
+async function sbFetchAll(table, select="*"){
+  const out = []; let from = 0;
+  while(true){
+    const {data, error} = await sb.from(table).select(select).range(from, from+999);
+    if(error) throw error;
+    out.push(...(data||[]));
+    if(!data || data.length < 1000) break;
+    from += 1000;
+  }
+  return out;
+}
+
+/* ================= AUTH ================= */
+function AuthScreen({onReady}){
+  const [cfg, setCfgState] = useState(getCfg());
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [name, setName] = useState("");
+  const [url, setUrl] = useState(cfg?.url||"");
+  const [key, setKey] = useState(cfg?.key||"");
+  const [showSetup, setShowSetup] = useState(!cfg);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(()=>{ if(cfg){ sb = supabase.createClient(cfg.url, cfg.key);
+    sb.auth.getSession().then(({data})=>{ if(data.session) onReady(data.session); });
+  }},[]);
+
+  async function submit(e){
+    e.preventDefault(); setErr(""); setBusy(true);
+    try{
+      if(mode==="login"){
+        const {data, error} = await sb.auth.signInWithPassword({email, password:pass});
+        if(error) throw error;
+        onReady(data.session);
+      }else{
+        const {data, error} = await sb.auth.signUp({email, password:pass, options:{data:{full_name:name}}});
+        if(error) throw error;
+        if(!data.session) setErr("Ro'yxatdan o'tish yuborildi. Agar email tasdiqlash yoqilgan bo'lsa, pochtangizni tekshiring (Supabase Dashboard > Authentication > Settings > 'Confirm email' ni o'chirib qo'yishingiz mumkin).");
+        else onReady(data.session);
+      }
+    }catch(e){ setErr(e.message); }
+    setBusy(false);
+  }
+
+  function saveSetup(){
+    if(!url || !key){ setErr("URL va kalitni to'ldiring"); return; }
+    const c = {url:url.trim(), key:key.trim()};
+    setCfg(c); setCfgState(c); setShowSetup(false); setErr("");
+    window.location.reload();
+  }
+
+  return (
+    <div className="auth-wrap">
+      <div className="card auth-card">
+        <div className="auth-logo"><span className="brand-dot"></span> Game Club <span className="pill">v2</span></div>
+        <div className="auth-sub">Supabase Auth himoyasidagi boshqaruv paneli</div>
+        {showSetup ? (
+          <div>
+            <h3 className="section-title">Supabase ulanish</h3>
+            <div className="field"><label>Project URL</label><input className="input" value={url} onChange={e=>setUrl(e.target.value)} placeholder="https://xxxx.supabase.co"/></div>
+            <div className="field"><label>Anon public key</label><input className="input" value={key} onChange={e=>setKey(e.target.value)} placeholder="sb_publishable_..."/></div>
+            {err && <div className="err">{err}</div>}
+            <div className="modal-actions">
+              <button className="btn primary" onClick={saveSetup}>Saqlash</button>
+              {cfg && <button className="btn" onClick={()=>setShowSetup(false)}>Orqaga</button>}
+            </div>
+            <p className="muted mt">Kalit: Supabase Dashboard → Project Settings → API → anon/public. Eski <b>sb_anon_...</b> kalit ham ishlaydi.</p>
+          </div>
+        ) : (
+          <form onSubmit={submit}>
+            <div className="seg">
+              <button type="button" className={mode==="login"?"on":""} onClick={()=>setMode("login")}>Kirish</button>
+              <button type="button" className={mode==="signup"?"on":""} onClick={()=>setMode("signup")}>Ro'yxatdan o'tish</button>
+            </div>
+            {mode==="signup" && <div className="field"><label>Ism</label><input className="input" value={name} onChange={e=>setName(e.target.value)}/></div>}
+            <div className="field"><label>Email</label><input className="input" type="email" required value={email} onChange={e=>setEmail(e.target.value)}/></div>
+            <div className="field"><label>Parol</label><input className="input" type="password" required minLength={6} value={pass} onChange={e=>setPass(e.target.value)}/></div>
+            {err && <div className="err">{err}</div>}
+            <button className="btn primary" style={{width:"100%",justifyContent:"center"}} disabled={busy}>{busy?"...":(mode==="login"?"Kirish":"Ro'yxatdan o'tish")}</button>
+            <p className="muted mt" style={{textAlign:"center"}}>
+              <a style={{color:"var(--teal)",cursor:"pointer"}} onClick={()=>{setShowSetup(true);setErr("");}}>Supabase sozlamasi</a>
+            </p>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ================= MODAL ================= */
+function Modal({title, onClose, children, width}){
+  return (
+    <div className="modal-back" onClick={onClose}>
+      <div className="modal" style={width?{maxWidth:width}:null} onClick={e=>e.stopPropagation()}>
+        <h3>{title}</h3>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ================= ASOSIY ILLOVA ================= */
+const NAV = [
+  {id:"rooms", label:"Xonalar"},
+  {id:"pos", label:"Sotuv"},
+  {id:"stock", label:"Ombor"},
+  {id:"clients", label:"Mijozlar"},
+  {id:"cash", label:"Kassa"},
+  {id:"reports", label:"Hisobot"},
+  {id:"staff", label:"Xodimlar", admin:true},
+];
+
+function App({session}){
+  const [view, setView] = useState("rooms");
+  const [profile, setProfile] = useState(null);
+  const [rooms, setRooms] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [cash, setCash] = useState([]);
+  const [sales, setSales] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [profiles, setProfiles] = useState([]);
+  const [live, setLive] = useState(false);
+  const [toast, setToast] = useState("");
+  const [modal, setModal] = useState(null); // {type, ...}
+  const [now, setNow] = useState(Date.now());
+  const chRef = useRef(null);
+
+  const isAdmin = profile?.role === "admin";
+  const isStaff = ["admin","operator","cashier"].includes(profile?.role);
+  const canOperate = ["admin","operator"].includes(profile?.role);
+
+  function notify(msg){ setToast(msg); setTimeout(()=>setToast(""), 3000); }
+
+  async function refreshAll(){
+    try{
+      const [r, s, p, c, ct, sl, ex] = await Promise.all([
+        sbFetchAll("rooms"),
+        sb.from("sessions").select("*").eq("status","open"),
+        sbFetchAll("products"),
+        sbFetchAll("customers"),
+        sb.from("cash_transactions").select("*").order("created_at",{ascending:false}).limit(500),
+        sb.from("sales").select("*, sale_items(*)").order("created_at",{ascending:false}).limit(300),
+        sbFetchAll("expenses"),
+      ]);
+      setRooms((r||[]).sort((a,b)=>a.sort_order-b.sort_order));
+      setSessions(s.data||[]);
+      setProducts(p||[]);
+      setCustomers(c||[]);
+      setCash(ct.data||[]);
+      setSales(sl.data||[]);
+      setExpenses(ex||[]);
+    }catch(e){ console.error(e); }
+  }
+
+  useEffect(()=>{
+    (async ()=>{
+      const {data} = await sb.from("profiles").select("*").eq("id", session.user.id).single();
+      setProfile(data);
+      await refreshAll();
+      if(chRef.current) sb.removeChannel(chRef.current);
+      chRef.current = sb.channel("gc2")
+        .on("postgres_changes",{event:"*",schema:"public",table:"rooms"}, refreshAll)
+        .on("postgres_changes",{event:"*",schema:"public",table:"sessions"}, refreshAll)
+        .on("postgres_changes",{event:"*",schema:"public",table:"products"}, refreshAll)
+        .on("postgres_changes",{event:"*",schema:"public",table:"customers"}, refreshAll)
+        .on("postgres_changes",{event:"*",schema:"public",table:"cash_transactions"}, refreshAll)
+        .on("postgres_changes",{event:"*",schema:"public",table:"sales"}, refreshAll)
+        .subscribe((st)=>setLive(st==="SUBSCRIBED"));
+      if(isAdminRef.current){ /* profiles loaded in StaffView */ }
+    })();
+    const t = setInterval(()=>setNow(Date.now()), 1000);
+    return ()=>{ clearInterval(t); if(chRef.current) sb.removeChannel(chRef.current); };
+  },[]);
+
+  const isAdminRef = useRef(isAdmin);
+  isAdminRef.current = isAdmin;
+
+  async function loadProfiles(){
+    const {data} = await sb.from("profiles").select("*").order("created_at");
+    setProfiles(data||[]);
+  }
+
+  async function callRpc(name, params, okMsg){
+    const {error} = await sb.rpc(name, params);
+    if(error){ notify("Xato: " + error.message); return false; }
+    if(okMsg) notify(okMsg);
+    await refreshAll();
+    return true;
+  }
+
+  const openSessionOf = (roomId)=> sessions.find(s=>s.room_id===roomId && s.status==="open");
+
+  return (
+    <div className="app">
+      <aside className="sidebar">
+        <div className="brand"><span className="brand-dot"></span> Game Club</div>
+        {NAV.filter(n=>!n.admin || isAdmin).map(n=>(
+          <button key={n.id} className={"nav-item"+(view===n.id?" active":"")} onClick={()=>{setView(n.id); if(n.id==="staff") loadProfiles();}}>
+            {n.label}
+            {n.id==="rooms" && <span className="nav-badge num">{rooms.filter(r=>r.status==="busy").length}</span>}
+          </button>
+        ))}
+        <div style={{flex:1}}></div>
+        <div className="user-chip">
+          <div>
+            <div style={{fontWeight:600}}>{profile?.full_name || session.user.email}</div>
+            <div className="muted" style={{fontSize:11}}>{profile?.role||"..."}</div>
+          </div>
+        </div>
+        <button className="btn small mt" style={{width:"100%",justifyContent:"center"}} onClick={async ()=>{ await sb.auth.signOut(); location.reload(); }}>Chiqish</button>
+      </aside>
+
+      <main className="main">
+        <div className="topbar">
+          <h1>{NAV.find(n=>n.id===view)?.label}</h1>
+          <div className="spacer"></div>
+          <span className={"pill "+(live?"live":"off")}>{live?"● Live":"offline"}</span>
+        </div>
+        {toast && <div className="ok" style={{position:"fixed",top:16,right:16,zIndex:99}}>{toast}</div>}
+
+        {view==="rooms" && (
+          <RoomsView {...{rooms, sessions, products, customers, now, canOperate, isAdmin,
+            onStart:(room)=>setModal({type:"start", room}),
+            onEnd:(room)=>setModal({type:"end", room, session:openSessionOf(room.id)}),
+            onAddRoom:()=>setModal({type:"addRoom"}),
+            onEditRoom:(room)=>setModal({type:"editRoom", room}),
+          }}/>
+        )}
+        {view==="pos" && isStaff && (
+          <PosView {...{products, customers, callRpc, notify}}/>
+        )}
+        {view==="stock" && (
+          <StockView {...{products, isAdmin, onAdd:()=>setModal({type:"addProduct"}), onRestock:(p)=>setModal({type:"restock", product:p}), onEdit:(p)=>setModal({type:"editProduct", product:p})}}/>
+        )}
+        {view==="clients" && (
+          <ClientsView {...{customers, isStaff, callRpc, onAdd:()=>setModal({type:"addCustomer"}), onTopup:(c)=>setModal({type:"topup", customer:c})}}/>
+        )}
+        {view==="cash" && (
+          <CashView {...{cash, expenses, isStaff, onExpense:()=>setModal({type:"expense"})}}/>
+        )}
+        {view==="reports" && (
+          <ReportsView {...{cash, sales, sessions, expenses, products}}/>
+        )}
+        {view==="staff" && isAdmin && (
+          <StaffView {...{profiles, callRpc}}/>
+        )}
+      </main>
+
+      {modal?.type==="start" && (
+        <StartModal room={modal.room} customers={customers}
+          onClose={()=>setModal(null)}
+          onOk={async (customerId, tariff)=>{
+            const ok = await callRpc("gc_start_session",{p_room_id:modal.room.id, p_customer_id:customerId||null, p_tariff:tariff});
+            if(ok) setModal(null);
+          }}/>
+      )}
+      {modal?.type==="end" && (
+        <EndModal room={modal.room} session={modal.session} products={products} customers={customers} now={now}
+          onClose={()=>setModal(null)}
+          onOk={async (method, customerId, cart)=>{
+            const ok = await callRpc("gc_end_session",{p_session_id:modal.session.id, p_method:method, p_cart:cart},
+              "Seans yopildi");
+            if(ok) setModal(null);
+          }}/>
+      )}
+      {modal?.type==="addRoom" && <RoomFormModal onClose={()=>setModal(null)} onSave={async (f)=>{
+        const {error} = await sb.from("rooms").insert({name:f.name, hourly_rate:f.day, day_price:f.day, night_price:f.night, sort_order:rooms.length});
+        if(error) notify("Xato: "+error.message); else { notify("Xona qo'shildi"); setModal(null); refreshAll(); }
+      }}/>}
+      {modal?.type==="editRoom" && <RoomFormModal room={modal.room} onClose={()=>setModal(null)} onSave={async (f)=>{
+        const {error} = await sb.from("rooms").update({name:f.name, hourly_rate:f.day, day_price:f.day, night_price:f.night}).eq("id",modal.room.id);
+        if(error) notify("Xato: "+error.message); else { notify("Saqlandi"); setModal(null); refreshAll(); }
+      }}/>}
+      {modal?.type==="addProduct" && <ProductFormModal onClose={()=>setModal(null)} onSave={async (f)=>{
+        const {error} = await sb.from("products").insert(f);
+        if(error) notify("Xato: "+error.message); else { notify("Mahsulot qo'shildi"); setModal(null); refreshAll(); }
+      }}/>}
+      {modal?.type==="editProduct" && <ProductFormModal product={modal.product} onClose={()=>setModal(null)} onSave={async (f)=>{
+        const {error} = await sb.from("products").update(f).eq("id",modal.product.id);
+        if(error) notify("Xato: "+error.message); else { notify("Saqlandi"); setModal(null); refreshAll(); }
+      }}/>}
+      {modal?.type==="restock" && <RestockModal product={modal.product} onClose={()=>setModal(null)} onSave={async (qty, cost)=>{
+        const {error} = await sb.rpc("gc_restock", {p_product_id:modal.product.id, p_qty:qty, p_cost:cost});
+        if(error) notify("Xato: "+error.message); else { notify("Omborga qo'shildi"); setModal(null); refreshAll(); }
+      }}/>}
+      {modal?.type==="addCustomer" && <CustomerFormModal onClose={()=>setModal(null)} onSave={async (f)=>{
+        const {error} = await sb.from("customers").insert(f);
+        if(error) notify("Xato: "+error.message); else { notify("Mijoz qo'shildi"); setModal(null); refreshAll(); }
+      }}/>}
+      {modal?.type==="topup" && <TopupModal customer={modal.customer} onClose={()=>setModal(null)} onSave={async (amount, method)=>{
+        const ok = await callRpc("gc_customer_topup",{p_customer_id:modal.customer.id, p_amount:amount, p_method:method});
+        if(ok) setModal(null);
+      }}/>}
+      {modal?.type==="expense" && <ExpenseModal onClose={()=>setModal(null)} onSave={async (f)=>{
+        const ok = await callRpc("gc_add_expense",{p_title:f.title, p_amount:f.amount, p_category:f.category});
+        if(ok) setModal(null);
+      }}/>}
+    </div>
+  );
+}
+
+/* ================= XONALAR ================= */
+const ROOM_STATUS = {free:"Bo'sh", busy:"Band", reserved:"Band qilingan", maintenance:"Ta'mir"};
+
+function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdmin, onStart, onEnd, onAddRoom, onEditRoom}){
+  return (
+    <div>
+      <div style={{display:"flex",gap:10,marginBottom:16}}>
+        {canOperate && <button className="btn primary" onClick={onAddRoom}>+ Xona qo'shish</button>}
+      </div>
+      <div className="grid rooms-grid">
+        {rooms.map(room=>{
+          const s = sessions.find(x=>x.room_id===room.id);
+          const busy = room.status==="busy" && s;
+          const mins = busy ? Math.max(1, Math.ceil((now - new Date(s.started_at).getTime())/60000)) : 0;
+          const cost = busy ? Math.round(s.tariff_per_hour * mins/60) : 0;
+          const cartCount = (s?.cart||[]).reduce((a,c)=>a+Number(c.qty||0),0);
+          return (
+            <div key={room.id} className="card room">
+              <div className="room-top">
+                <span className="room-name">{room.name}</span>
+                <span className={"status "+room.status}>{ROOM_STATUS[room.status]||room.status}</span>
+              </div>
+              {busy ? (
+                <div>
+                  <div className="room-time num">{String(Math.floor(mins/60)).padStart(2,"0")}:{String(mins%60).padStart(2,"0")}</div>
+                  <div className="room-price num">{money(s.tariff_per_hour)} / soat</div>
+                  <div className="room-cost num">{money(cost)}{cartCount>0 && <span className="muted"> + {cartCount} ta mahsulot</span>}</div>
+                </div>
+              ) : (
+                <div className="muted" style={{margin:"14px 0"}}>
+                  Kunduzi: <b className="num" style={{color:"var(--txt-0)"}}>{money(room.day_price)}</b><br/>
+                  Tunda: <b className="num" style={{color:"var(--txt-0)"}}>{money(room.night_price)}</b>
+                </div>
+              )}
+              <div className="room-actions">
+                {canOperate && (busy
+                  ? <button className="btn danger" onClick={()=>onEnd(room)}>Yakunlash</button>
+                  : <button className="btn primary" onClick={()=>onStart(room)}>Boshlash</button>)}
+                {isAdmin && <button className="btn small" onClick={()=>onEditRoom(room)}>✎</button>}
+              </div>
+            </div>
+          );
+        })}
+        {!rooms.length && <div className="card muted">Hozircha xona yo'q. "+ Xona qo'shish" tugmasini bosing.</div>}
+      </div>
+    </div>
+  );
+}
+
+function StartModal({room, customers, onClose, onOk}){
+  const [customerId, setCustomerId] = useState("");
+  const [tariff, setTariff] = useState(room.day_price || room.hourly_rate);
+  useEffect(()=>{ setTariff(room.day_price || room.hourly_rate); },[room.id]);
+  return (
+    <Modal title={room.name + " — seans boshlash"} onClose={onClose}>
+      <div className="field"><label>Tarif (soatiga)</label>
+        <div className="seg">
+          <button type="button" className={Number(tariff)===Number(room.day_price)?"on":""} onClick={()=>setTariff(room.day_price)}>Kun — {money(room.day_price)}</button>
+          <button type="button" className={Number(tariff)===Number(room.night_price)?"on":""} onClick={()=>setTariff(room.night_price)}>Tun — {money(room.night_price)}</button>
+        </div>
+      </div>
+      <div className="field"><label>Mijoz (ixtiyoriy)</label>
+        <select className="input" value={customerId} onChange={e=>setCustomerId(e.target.value)}>
+          <option value="">— tanlanmagan —</option>
+          {customers.filter(c=>c.is_active).map(c=><option key={c.id} value={c.id}>{c.name} (balans: {money(c.balance)})</option>)}
+        </select>
+      </div>
+      <div className="modal-actions">
+        <button className="btn primary" onClick={()=>onOk(customerId||null, tariff)}>Boshlash</button>
+        <button className="btn" onClick={onClose}>Bekor</button>
+      </div>
+    </Modal>
+  );
+}
+
+function EndModal({room, session, products, customers, now, onClose, onOk}){
+  const [method, setMethod] = useState("cash");
+  const [customerId, setCustomerId] = useState(session.customer_id||"");
+  const [cart, setCart] = useState([]);
+  const mins = Math.max(1, Math.ceil((now - new Date(session.started_at).getTime())/60000));
+  const timeAmount = Math.round(session.tariff_per_hour * mins/60);
+  const cartTotal = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
+  const total = timeAmount + cartTotal;
+
+  function addToCart(p){
+    setCart(prev=>{
+      const ex = prev.find(c=>c.product_id===p.id);
+      if(ex) return prev.map(c=>c.product_id===p.id?{...c,qty:c.qty+1}:c);
+      return [...prev,{product_id:p.id, qty:1}];
+    });
+  }
+  const setQty = (id,d)=>setCart(prev=>prev.map(c=>c.product_id===id?{...c,qty:Math.max(0,c.qty+d)}:c).filter(c=>c.qty>0));
+  const cust = customers.find(c=>c.id===customerId);
+
+  return (
+    <Modal title={room.name + " — seansni yakunlash"} onClose={onClose} width={560}>
+      <div className="grid" style={{gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
+        <div className="card" style={{padding:12}}>
+          <div className="kpi-label">Vaqt</div>
+          <div className="num" style={{fontSize:20,fontWeight:700}}>{mins} daqiqa</div>
+          <div className="muted num">{money(session.tariff_per_hour)} / soat</div>
+        </div>
+        <div className="card" style={{padding:12}}>
+          <div className="kpi-label">Summa</div>
+          <div className="num" style={{fontSize:20,fontWeight:700,color:"var(--teal)"}}>{money(total)}</div>
+          <div className="muted num">vaqt {money(timeAmount)}{cartTotal>0 && " + savat "+money(cartTotal)}</div>
+        </div>
+      </div>
+
+      <div className="field"><label>To'lov usuli</label>
+        <div className="seg">
+          {[["cash","Naqd"],["card","Karta"],["balance","Balans"]].map(([v,l])=>(
+            <button key={v} type="button" className={method===v?"on":""} onClick={()=>setMethod(v)}>{l}</button>
+          ))}
+        </div>
+      </div>
+      {method==="balance" && (
+        <div className="field"><label>Mijoz</label>
+          <select className="input" value={customerId} onChange={e=>setCustomerId(e.target.value)}>
+            <option value="">— tanlang —</option>
+            {customers.filter(c=>c.is_active).map(c=><option key={c.id} value={c.id}>{c.name} (balans: {money(c.balance)})</option>)}
+          </select>
+          {cust && Number(cust.balance) < total && <div className="err mt">Balans yetarli emas!</div>}
+        </div>
+      )}
+
+      <div className="field"><label>Savatga mahsulot qo'shish (ixtiyoriy)</label>
+        <div className="grid pos-grid">
+          {products.filter(p=>p.active).map(p=>(
+            <button key={p.id} className="prod" onClick={()=>addToCart(p)}>
+              <div className="nm">{p.name}</div>
+              <div className="pr num">{money(p.price)}</div>
+              <div className="st">qoldiq: {fmt(p.stock_qty)}</div>
+            </button>
+          ))}
+        </div>
+        {cart.length>0 && (
+          <div className="mt">
+            {cart.map(c=>{ const p=products.find(x=>x.id===c.product_id); if(!p) return null;
+              return (
+                <div key={c.product_id} className="cart-line">
+                  <span style={{flex:1}}>{p.name}</span>
+                  <button className="qty-btn" onClick={()=>setQty(c.product_id,-1)}>−</button>
+                  <span className="num">{c.qty}</span>
+                  <button className="qty-btn" onClick={()=>setQty(c.product_id,1)}>+</button>
+                  <span className="num" style={{width:90,textAlign:"right"}}>{money(p.price*c.qty)}</span>
+                </div>
+              );})}
+          </div>
+        )}
+      </div>
+
+      <div className="modal-actions">
+        <button className="btn primary" disabled={method==="balance" && (!customerId || Number(cust?.balance)<total)}
+          onClick={()=>onOk(method, customerId||null, cart)}>Yakunlash — {money(total)}</button>
+        <button className="btn" onClick={onClose}>Bekor</button>
+      </div>
+    </Modal>
+  );
+}
+
+function RoomFormModal({room, onClose, onSave}){
+  const [name, setName] = useState(room?.name||"");
+  const [day, setDay] = useState(room?.day_price??room?.hourly_rate??20000);
+  const [night, setNight] = useState(room?.night_price??25000);
+  return (
+    <Modal title={room?"Xonani tahrirlash":"Yangi xona"} onClose={onClose}>
+      <div className="field"><label>Nomi</label><input className="input" value={name} onChange={e=>setName(e.target.value)}/></div>
+      <div className="field"><label>Kunduzi (soatiga)</label><input className="input num" type="number" value={day} onChange={e=>setDay(e.target.value)}/></div>
+      <div className="field"><label>Tunda (soatiga)</label><input className="input num" type="number" value={night} onChange={e=>setNight(e.target.value)}/></div>
+      <div className="modal-actions">
+        <button className="btn primary" disabled={!name} onClick={()=>onSave({name, day:Number(day)||0, night:Number(night)||0})}>Saqlash</button>
+        <button className="btn" onClick={onClose}>Bekor</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ================= SOTUV (POS) ================= */
+function PosView({products, customers, callRpc, notify}){
+  const [cart, setCart] = useState([]);
+  const [method, setMethod] = useState("cash");
+  const [customerId, setCustomerId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const total = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
+  const cust = customers.find(c=>c.id===customerId);
+
+  const add = (p)=>setCart(prev=>{ const ex=prev.find(c=>c.product_id===p.id);
+    if(ex) return prev.map(c=>c.product_id===p.id?{...c,qty:c.qty+1}:c);
+    return [...prev,{product_id:p.id, qty:1}]; });
+  const setQty = (id,d)=>setCart(prev=>prev.map(c=>c.product_id===id?{...c,qty:Math.max(0,c.qty+d)}:c).filter(c=>c.qty>0));
+
+  async function pay(){
+    if(!cart.length) return;
+    setBusy(true);
+    const ok = await callRpc("gc_make_sale",{p_items:cart, p_method:method, p_customer_id:customerId||null}, "Sotuv muvaffaqiyatli");
+    setBusy(false);
+    if(ok) setCart([]);
+  }
+
+  return (
+    <div className="pos">
+      <div>
+        <div className="grid pos-grid">
+          {products.filter(p=>p.active).map(p=>(
+            <button key={p.id} className="prod" onClick={()=>add(p)}>
+              <div className="nm">{p.name}</div>
+              <div className="pr num">{money(p.price)}</div>
+              <div className="st">qoldiq: {fmt(p.stock_qty)}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <h3 className="section-title">Savat</h3>
+        {!cart.length && <div className="muted">Mahsulot tanlang</div>}
+        {cart.map(c=>{ const p=products.find(x=>x.id===c.product_id); if(!p) return null;
+          return (
+            <div key={c.product_id} className="cart-line">
+              <span style={{flex:1}}>{p.name}</span>
+              <button className="qty-btn" onClick={()=>setQty(c.product_id,-1)}>−</button>
+              <span className="num">{c.qty}</span>
+              <button className="qty-btn" onClick={()=>setQty(c.product_id,1)}>+</button>
+              <span className="num" style={{width:90,textAlign:"right"}}>{money(p.price*c.qty)}</span>
+            </div>
+          );})}
+        <div className="field mt"><label>To'lov usuli</label>
+          <div className="seg">
+            {[["cash","Naqd"],["card","Karta"],["balance","Balans"]].map(([v,l])=>(
+              <button key={v} type="button" className={method===v?"on":""} onClick={()=>setMethod(v)}>{l}</button>
+            ))}
+          </div>
+        </div>
+        {method==="balance" && (
+          <div className="field"><label>Mijoz</label>
+            <select className="input" value={customerId} onChange={e=>setCustomerId(e.target.value)}>
+              <option value="">— tanlang —</option>
+              {customers.filter(c=>c.is_active).map(c=><option key={c.id} value={c.id}>{c.name} (balans: {money(c.balance)})</option>)}
+            </select>
+            {cust && Number(cust.balance) < total && <div className="err mt">Balans yetarli emas!</div>}
+          </div>
+        )}
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:18,fontWeight:700,margin:"14px 0"}}>
+          <span>Jami</span><span className="num" style={{color:"var(--teal)"}}>{money(total)}</span>
+        </div>
+        <button className="btn primary" style={{width:"100%",justifyContent:"center"}} disabled={!cart.length||busy||(method==="balance"&&(!customerId||Number(cust?.balance)<total))} onClick={pay}>
+          {busy?"...":"To'lash"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ================= OMBOR ================= */
+function StockView({products, isAdmin, onAdd, onRestock, onEdit}){
+  const low = products.filter(p=>Number(p.stock_qty)<=Number(p.min_stock));
+  return (
+    <div>
+      <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center"}}>
+        {isAdmin && <button className="btn primary" onClick={onAdd}>+ Mahsulot</button>}
+        <span className="pill" style={low.length?{color:"var(--red)",borderColor:"rgba(242,85,90,0.4)",background:"var(--red-bg)"}:{}}>
+          Kam qoldiq: {low.length} ta
+        </span>
+      </div>
+      <div className="card">
+        <table>
+          <thead><tr><th>Nomi</th><th>Kategoriya</th><th>Tannarx</th><th>Narx</th><th>Qoldiq</th><th>Min</th>{isAdmin&&<th></th>}</tr></thead>
+          <tbody>
+            {products.map(p=>(
+              <tr key={p.id}>
+                <td>{p.name}</td>
+                <td className="muted">{p.category}</td>
+                <td className="num">{money(p.cost)}</td>
+                <td className="num">{money(p.price)}</td>
+                <td className={"num "+(Number(p.stock_qty)<=Number(p.min_stock)?"low":"")}>{fmt(p.stock_qty)}</td>
+                <td className="num muted">{fmt(p.min_stock)}</td>
+                {isAdmin && <td style={{whiteSpace:"nowrap"}}>
+                  <button className="btn small" onClick={()=>onRestock(p)}>+ Ombor</button>{" "}
+                  <button className="btn small" onClick={()=>onEdit(p)}>✎</button>
+                </td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ProductFormModal({product, onClose, onSave}){
+  const [f, setF] = useState({name:product?.name||"", category:product?.category||"", cost:product?.cost??"", price:product?.price??"", stock_qty:product?.stock_qty??0, min_stock:product?.min_stock??5, active:product?.active??true});
+  const set = (k,v)=>setF(prev=>({...prev,[k]:v}));
+  return (
+    <Modal title={product?"Mahsulotni tahrirlash":"Yangi mahsulot"} onClose={onClose}>
+      <div className="field"><label>Nomi</label><input className="input" value={f.name} onChange={e=>set("name",e.target.value)}/></div>
+      <div className="field"><label>Kategoriya</label><input className="input" value={f.category} onChange={e=>set("category",e.target.value)}/></div>
+      <div className="grid" style={{gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div className="field"><label>Tannarx</label><input className="input num" type="number" value={f.cost} onChange={e=>set("cost",e.target.value)}/></div>
+        <div className="field"><label>Sotish narxi</label><input className="input num" type="number" value={f.price} onChange={e=>set("price",e.target.value)}/></div>
+        <div className="field"><label>Boshlang'ich qoldiq</label><input className="input num" type="number" value={f.stock_qty} onChange={e=>set("stock_qty",e.target.value)}/></div>
+        <div className="field"><label>Minimal qoldiq</label><input className="input num" type="number" value={f.min_stock} onChange={e=>set("min_stock",e.target.value)}/></div>
+      </div>
+      <div className="modal-actions">
+        <button className="btn primary" disabled={!f.name} onClick={()=>onSave({...f, cost:Number(f.cost)||0, price:Number(f.price)||0, stock_qty:Number(f.stock_qty)||0, min_stock:Number(f.min_stock)||0})}>Saqlash</button>
+        <button className="btn" onClick={onClose}>Bekor</button>
+      </div>
+    </Modal>
+  );
+}
+
+function RestockModal({product, onClose, onSave}){
+  const [qty, setQty] = useState(10);
+  const [cost, setCost] = useState(product.cost||"");
+  return (
+    <Modal title={product.name + " — omborga qo'shish"} onClose={onClose}>
+      <div className="field"><label>Miqdor</label><input className="input num" type="number" min="1" value={qty} onChange={e=>setQty(e.target.value)}/></div>
+      <div className="field"><label>Tannarx (yangi partiya)</label><input className="input num" type="number" value={cost} onChange={e=>setCost(e.target.value)}/></div>
+      <div className="modal-actions">
+        <button className="btn primary" disabled={!(Number(qty)>0)} onClick={()=>onSave(Number(qty), Number(cost)||product.cost||0)}>Qo'shish</button>
+        <button className="btn" onClick={onClose}>Bekor</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ================= MIJOZLAR ================= */
+function ClientsView({customers, isStaff, onAdd, onTopup}){
+  return (
+    <div>
+      <div style={{display:"flex",gap:10,marginBottom:16}}>
+        {isStaff && <button className="btn primary" onClick={onAdd}>+ Mijoz</button>}
+      </div>
+      <div className="card">
+        <table>
+          <thead><tr><th>Ism</th><th>Telefon</th><th>Balans</th><th></th></tr></thead>
+          <tbody>
+            {customers.map(c=>(
+              <tr key={c.id}>
+                <td>{c.name}</td>
+                <td className="muted">{c.phone||"—"}</td>
+                <td className="num" style={{fontWeight:700,color:Number(c.balance)>0?"var(--teal)":"inherit"}}>{money(c.balance)}</td>
+                <td>{isStaff && <button className="btn small" onClick={()=>onTopup(c)}>To'ldirish</button>}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {!customers.length && <div className="muted" style={{padding:12}}>Mijozlar yo'q</div>}
+      </div>
+    </div>
+  );
+}
+
+function CustomerFormModal({onClose, onSave}){
+  const [f, setF] = useState({name:"", phone:""});
+  return (
+    <Modal title="Yangi mijoz" onClose={onClose}>
+      <div className="field"><label>Ism</label><input className="input" value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></div>
+      <div className="field"><label>Telefon</label><input className="input" value={f.phone} onChange={e=>setF({...f,phone:e.target.value})}/></div>
+      <div className="modal-actions">
+        <button className="btn primary" disabled={!f.name} onClick={()=>onSave(f)}>Saqlash</button>
+        <button className="btn" onClick={onClose}>Bekor</button>
+      </div>
+    </Modal>
+  );
+}
+
+function TopupModal({customer, onClose, onSave}){
+  const [amount, setAmount] = useState(50000);
+  const [method, setMethod] = useState("cash");
+  return (
+    <Modal title={customer.name + " — balans to'ldirish"} onClose={onClose}>
+      <div className="field"><label>Summa</label><input className="input num" type="number" min="1000" value={amount} onChange={e=>setAmount(e.target.value)}/></div>
+      <div className="field"><label>Usul</label>
+        <div className="seg">
+          {[["cash","Naqd"],["card","Karta"]].map(([v,l])=>(
+            <button key={v} type="button" className={method===v?"on":""} onClick={()=>setMethod(v)}>{l}</button>
+          ))}
+        </div>
+      </div>
+      <div className="modal-actions">
+        <button className="btn primary" disabled={!(Number(amount)>0)} onClick={()=>onSave(Number(amount), method)}>To'ldirish</button>
+        <button className="btn" onClick={onClose}>Bekor</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ================= KASSA ================= */
+function CashView({cash, expenses, isStaff, onExpense}){
+  const today = new Date().toDateString();
+  const tCash = cash.filter(c=>new Date(c.created_at).toDateString()===today);
+  const tin = tCash.filter(c=>c.direction==="in").reduce((a,c)=>a+Number(c.amount),0);
+  const tout = tCash.filter(c=>c.direction==="out").reduce((a,c)=>a+Number(c.amount),0);
+  const TYPE = {session_payment:"Seans", sale:"Sotuv", topup:"To'ldirish", expense:"Xarajat", debt_payment:"Qarz", manual:"Qo'lda"};
+  return (
+    <div>
+      <div className="grid kpis" style={{marginBottom:16}}>
+        <div className="card kpi"><div className="kpi-accent" style={{background:"var(--green)"}}></div><div className="kpi-label">Kirim (bugun)</div><div className="kpi-value num" style={{color:"var(--green)"}}>{money(tin)}</div></div>
+        <div className="card kpi"><div className="kpi-accent" style={{background:"var(--red)"}}></div><div className="kpi-label">Chiqim (bugun)</div><div className="kpi-value num" style={{color:"var(--red)"}}>{money(tout)}</div></div>
+        <div className="card kpi"><div className="kpi-accent" style={{background:"var(--teal)"}}></div><div className="kpi-label">Sof (bugun)</div><div className="kpi-value num">{money(tin-tout)}</div></div>
+      </div>
+      {isStaff && <div style={{marginBottom:16}}><button className="btn danger" onClick={onExpense}>+ Xarajat</button></div>}
+      <div className="card">
+        <h3 className="section-title">Pul oqimlari</h3>
+        <table>
+          <thead><tr><th>Vaqt</th><th>Turi</th><th>Izoh</th><th>Usul</th><th style={{textAlign:"right"}}>Summa</th></tr></thead>
+          <tbody>
+            {cash.map(c=>(
+              <tr key={c.id}>
+                <td className="num muted">{new Date(c.created_at).toLocaleString("uz-UZ",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</td>
+                <td>{TYPE[c.txn_type]||c.txn_type}</td>
+                <td className="muted">{c.description}</td>
+                <td className="muted">{c.method==="card"?"Karta":c.method==="balance"?"Balans":"Naqd"}</td>
+                <td className="num" style={{textAlign:"right",fontWeight:700,color:c.direction==="in"?"var(--green)":"var(--red)"}}>{c.direction==="in"?"+":"−"} {money(c.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ExpenseModal({onClose, onSave}){
+  const [f, setF] = useState({title:"", amount:"", category:"umumiy"});
+  return (
+    <Modal title="Yangi xarajat" onClose={onClose}>
+      <div className="field"><label>Izoh</label><input className="input" value={f.title} onChange={e=>setF({...f,title:e.target.value})}/></div>
+      <div className="grid" style={{gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div className="field"><label>Summa</label><input className="input num" type="number" value={f.amount} onChange={e=>setF({...f,amount:e.target.value})}/></div>
+        <div className="field"><label>Kategoriya</label>
+          <select className="input" value={f.category} onChange={e=>setF({...f,category:e.target.value})}>
+            {["umumiy","komunal","ish haqi","arenda","ta'mir","boshqa"].map(c=><option key={c}>{c}</option>)}
+          </select>
+        </div>
+      </div>
+      <div className="modal-actions">
+        <button className="btn primary" disabled={!f.title||!(Number(f.amount)>0)} onClick={()=>onSave({...f, amount:Number(f.amount)})}>Saqlash</button>
+        <button className="btn" onClick={onClose}>Bekor</button>
+      </div>
+    </Modal>
+  );
+}
+
+/* ================= HISOBOT ================= */
+function ReportsView({cash, sales, sessions, expenses, products}){
+  const today = new Date().toDateString();
+  const tIn = cash.filter(c=>c.direction==="in" && new Date(c.created_at).toDateString()===today);
+  const byCat = {};
+  tIn.forEach(c=>{ byCat[c.category||c.txn_type]=(byCat[c.category||c.txn_type]||0)+Number(c.amount); });
+  const profit = sales.reduce((a,s)=>a+(s.sale_items||[]).reduce((x,it)=>{
+    const p=products.find(pp=>pp.id===it.product_id);
+    return x + (p ? (Number(it.unit_price)-Number(p.cost))*Number(it.qty) : 0);
+  },0),0);
+  const openSessions = sessions.length;
+  const low = products.filter(p=>Number(p.stock_qty)<=Number(p.min_stock));
+  return (
+    <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))"}}>
+      <div className="card">
+        <h3 className="section-title">Bugungi kirim (kategoriya)</h3>
+        {Object.entries(byCat).map(([k,v])=>(
+          <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--line)"}}>
+            <span className="muted">{k}</span><span className="num" style={{fontWeight:700}}>{money(v)}</span>
+          </div>
+        ))}
+        {!Object.keys(byCat).length && <div className="muted">Bugun hali kirim yo'q</div>}
+      </div>
+      <div className="card">
+        <h3 className="section-title">Ko'rsatkichlar</h3>
+        <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--line)"}}>
+          <span className="muted">Ochiq seanslar</span><span className="num" style={{fontWeight:700}}>{openSessions}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--line)"}}>
+          <span className="muted">Mahsulot savdosi (jami)</span><span className="num" style={{fontWeight:700}}>{sales.length} ta</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid var(--line)"}}>
+          <span className="muted">Taxminiy sof foyda (sotuvdan)</span><span className="num" style={{fontWeight:700,color:"var(--green)"}}>{money(profit)}</span>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",padding:"8px 0"}}>
+          <span className="muted">Kam qoldiqdagi mahsulotlar</span><span className="num" style={{fontWeight:700,color:low.length?"var(--red)":"inherit"}}>{low.length} ta</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ================= XODIMLAR ================= */
+function StaffView({profiles, callRpc}){
+  const ROLE = {admin:"Admin", operator:"Operator", cashier:"Kassir"};
+  return (
+    <div className="card">
+      <p className="muted" style={{marginTop:0}}>Yangi xodim: Authentication → Users → Add user (email+parol). Ro'yxatdan o'tganlar shu yerda paydo bo'ladi.</p>
+      <table>
+        <thead><tr><th>Ism</th><th>Rol</th><th>Holat</th></tr></thead>
+        <tbody>
+          {profiles.map(p=>(
+            <tr key={p.id}>
+              <td>{p.full_name}</td>
+              <td>
+                <select className="input" style={{width:140,padding:"6px 10px"}} value={p.role}
+                  onChange={e=>callRpc("gc_set_user_role",{p_user_id:p.id, p_role:e.target.value}, "Rol yangilandi")}>
+                  {Object.entries(ROLE).map(([v,l])=><option key={v} value={v}>{l}</option>)}
+                </select>
+              </td>
+              <td className="muted">{p.is_active?"Faol":"Nofaol"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {!profiles.length && <div className="muted" style={{padding:12}}>Yuklanmoqda...</div>}
+    </div>
+  );
+}
+
+/* ================= ROOT ================= */
+function Root(){
+  const [session, setSession] = useState(undefined); // undefined = loading
+  useEffect(()=>{
+    const cfg = getCfg();
+    if(!cfg){ setSession(null); return; }
+    sb = supabase.createClient(cfg.url, cfg.key);
+    sb.auth.getSession().then(({data})=>setSession(data.session||null));
+    const {data:sub} = sb.auth.onAuthStateChange((_e,s)=>setSession(s||null));
+    return ()=>sub.subscription.unsubscribe();
+  },[]);
+  if(session===undefined) return <div className="auth-wrap"><div className="muted">Yuklanmoqda...</div></div>;
+  if(!session) return <AuthScreen onReady={setSession}/>;
+  return <App session={session}/>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
+</script>
+</head>
+<body>
+<div id="root"></div>
+</body>
+</html>
