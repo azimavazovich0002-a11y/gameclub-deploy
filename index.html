@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -27,7 +28,7 @@ body{margin:0;background:var(--bg-0);color:var(--txt-0);font-family:var(--font-u
 button{font-family:inherit;cursor:pointer}
 input,select{font-family:inherit}
 .num{font-family:var(--font-num);font-variant-numeric:tabular-nums}
-
+ 
 /* shell */
 .app{display:flex;min-height:100vh}
 .sidebar{width:220px;flex-shrink:0;background:var(--bg-1);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 12px;position:sticky;top:0;height:100vh}
@@ -55,7 +56,7 @@ input,select{font-family:inherit}
 .pill.live{color:var(--green);border-color:rgba(62,207,142,0.4);background:var(--green-bg)}
 .pill.off{color:var(--amber);border-color:rgba(242,179,65,0.4);background:var(--amber-bg)}
 .user-chip{display:flex;align-items:center;gap:8px;background:var(--bg-1);border:1px solid var(--line);border-radius:20px;padding:5px 12px;font-size:13px}
-
+ 
 /* buttons */
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:10px;border:1px solid var(--line-strong);background:var(--bg-2);color:var(--txt-0);font-weight:600;font-size:14px}
 .btn:hover{background:var(--bg-3)}
@@ -64,7 +65,7 @@ input,select{font-family:inherit}
 .btn.danger{background:var(--red-bg);border-color:rgba(242,85,90,0.5);color:var(--red)}
 .btn.small{padding:6px 12px;font-size:13px;border-radius:8px}
 .btn:disabled{opacity:0.45;cursor:not-allowed}
-
+ 
 /* cards */
 .card{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius-l);padding:18px;transition:border-color .15s ease}
 .grid{display:grid;gap:16px}
@@ -73,7 +74,7 @@ input,select{font-family:inherit}
 .kpi-accent{position:absolute;left:0;top:0;bottom:0;width:4px}
 .kpi-label{font-size:12px;color:var(--txt-2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px}
 .kpi-value{font-size:24px;font-weight:700}
-
+ 
 /* rooms */
 .rooms-grid{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
 .room{position:relative;overflow:hidden}
@@ -94,14 +95,14 @@ input,select{font-family:inherit}
 .room-progress{height:5px;border-radius:4px;background:var(--bg-3);margin-top:10px;overflow:hidden}
 .room-progress-fill{height:100%;border-radius:4px;background:var(--teal);transition:width .4s linear}
 .room-progress-fill.over{background:var(--red)}
-
+ 
 /* tables */
 table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;color:var(--txt-2);padding:8px 10px;border-bottom:1px solid var(--line)}
 td{padding:10px;border-bottom:1px solid var(--line)}
 tr:last-child td{border-bottom:none}
 .low{color:var(--red);font-weight:700}
-
+ 
 /* modal */
 .modal-back{position:fixed;inset:0;background:rgba(4,6,10,0.72);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
 .modal{background:var(--bg-1);border:1px solid var(--line-strong);border-radius:var(--radius-l);padding:22px;width:100%;max-width:460px;max-height:90vh;overflow:auto}
@@ -114,7 +115,7 @@ tr:last-child td{border-bottom:none}
 .modal-actions .btn{flex:1;justify-content:center}
 .err{background:var(--red-bg);color:var(--red);border:1px solid rgba(242,85,90,0.4);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px}
 .ok{background:var(--green-bg);color:var(--green);border:1px solid rgba(62,207,142,0.4);border-radius:10px;padding:9px 12px;font-size:13px;margin-bottom:12px}
-
+ 
 /* auth */
 .auth-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .auth-card{width:100%;max-width:400px}
@@ -123,7 +124,7 @@ tr:last-child td{border-bottom:none}
 .seg{display:flex;background:var(--bg-2);border-radius:10px;padding:4px;margin-bottom:16px}
 .seg button{flex:1;border:none;background:none;color:var(--txt-1);padding:8px;border-radius:8px;font-weight:600;font-size:14px}
 .seg button.on{background:var(--bg-3);color:var(--txt-0)}
-
+ 
 /* pos */
 .pos{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
 @media(max-width:900px){.pos{grid-template-columns:1fr}.sidebar{display:none}.main{padding:16px 14px 84px}}
@@ -155,24 +156,27 @@ tr:last-child td{border-bottom:none}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script type="text/babel" data-presets="react">
 const {useState, useEffect, useRef, useMemo} = React;
-
+ 
 /* ================= SOZLASH ================= */
 const SUPABASE_URL = "";      // Project URL
 const SUPABASE_ANON_KEY = ""; // anon public key
-
+ 
 function getCfg(){
   try{ const s = JSON.parse(localStorage.getItem("gc2_cfg")||"null"); if(s&&s.url&&s.key) return s; }catch(e){}
   if(SUPABASE_URL && SUPABASE_ANON_KEY) return {url:SUPABASE_URL, key:SUPABASE_ANON_KEY};
   return null;
 }
 function setCfg(c){ try{ c?localStorage.setItem("gc2_cfg",JSON.stringify(c)):localStorage.removeItem("gc2_cfg"); }catch(e){} }
-
+ 
 const fmt = n => (Number(n)||0).toLocaleString("uz-UZ");
 const money = n => fmt(Math.round(Number(n)||0)) + " so'm";
-
+// Summasiz (o'lchovli) seanslarda narx doim 500 so'mgacha yaxlitlanadi (kassa bilan mos kelishi uchun)
+const ROUND_STEP = 500;
+const roundMoney = n => Math.ceil((Number(n)||0)/ROUND_STEP)*ROUND_STEP;
+ 
 /* ================= SUPABASE CONTEXT ================= */
 let sb = null;
-
+ 
 async function sbFetchAll(table, select="*"){
   const out = []; let from = 0;
   while(true){
@@ -184,7 +188,7 @@ async function sbFetchAll(table, select="*"){
   }
   return out;
 }
-
+ 
 /* ================= AUTH ================= */
 function AuthScreen({onReady}){
   const [cfg, setCfgState] = useState(getCfg());
@@ -197,11 +201,11 @@ function AuthScreen({onReady}){
   const [showSetup, setShowSetup] = useState(!cfg);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-
+ 
   useEffect(()=>{ if(cfg){ sb = supabase.createClient(cfg.url, cfg.key);
     sb.auth.getSession().then(({data})=>{ if(data.session) onReady(data.session); });
   }},[]);
-
+ 
   async function submit(e){
     e.preventDefault(); setErr(""); setBusy(true);
     try{
@@ -218,14 +222,14 @@ function AuthScreen({onReady}){
     }catch(e){ setErr(e.message); }
     setBusy(false);
   }
-
+ 
   function saveSetup(){
     if(!url || !key){ setErr("URL va kalitni to'ldiring"); return; }
     const c = {url:url.trim(), key:key.trim()};
     setCfg(c); setCfgState(c); setShowSetup(false); setErr("");
     window.location.reload();
   }
-
+ 
   return (
     <div className="auth-wrap">
       <div className="card auth-card">
@@ -263,7 +267,7 @@ function AuthScreen({onReady}){
     </div>
   );
 }
-
+ 
 /* ================= MODAL ================= */
 function Modal({title, onClose, children, width}){
   return (
@@ -275,7 +279,7 @@ function Modal({title, onClose, children, width}){
     </div>
   );
 }
-
+ 
 /* ================= ASOSIY ILLOVA ================= */
 const NAV = [
   {id:"dashboard", label:"Boshqaruv"},
@@ -297,7 +301,7 @@ const NAV_ICONS = {
   reports: <svg viewBox="0 0 20 20" fill="none"><path d="M4 16.5V9M9.3 16.5V4.5M14.6 16.5v-6.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M2.5 16.5h15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
   staff: <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="6.3" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M3.5 17c.7-4 3-6 6.5-6s5.8 2 6.5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
 };
-
+ 
 function App({session}){
   const [view, setView] = useState("dashboard");
   const [profile, setProfile] = useState(null);
@@ -314,13 +318,13 @@ function App({session}){
   const [modal, setModal] = useState(null); // {type, ...}
   const [now, setNow] = useState(Date.now());
   const chRef = useRef(null);
-
+ 
   const isAdmin = profile?.role === "admin";
   const isStaff = ["admin","operator","cashier"].includes(profile?.role);
   const canOperate = ["admin","operator"].includes(profile?.role);
-
+ 
   function notify(msg){ setToast(msg); setTimeout(()=>setToast(""), 3000); }
-
+ 
   async function refreshAll(){
     try{
       const [r, s, p, c, ct, sl, ex] = await Promise.all([
@@ -341,7 +345,7 @@ function App({session}){
       setExpenses(ex||[]);
     }catch(e){ console.error(e); }
   }
-
+ 
   useEffect(()=>{
     (async ()=>{
       const {data} = await sb.from("profiles").select("*").eq("id", session.user.id).single();
@@ -361,15 +365,15 @@ function App({session}){
     const t = setInterval(()=>setNow(Date.now()), 1000);
     return ()=>{ clearInterval(t); if(chRef.current) sb.removeChannel(chRef.current); };
   },[]);
-
+ 
   const isAdminRef = useRef(isAdmin);
   isAdminRef.current = isAdmin;
-
+ 
   async function loadProfiles(){
     const {data} = await sb.from("profiles").select("*").order("created_at");
     setProfiles(data||[]);
   }
-
+ 
   async function callRpc(name, params, okMsg){
     const {error} = await sb.rpc(name, params);
     if(error){ notify("Xato: " + error.message); return false; }
@@ -377,9 +381,9 @@ function App({session}){
     await refreshAll();
     return true;
   }
-
+ 
   const openSessionOf = (roomId)=> sessions.find(s=>s.room_id===roomId && s.status==="open");
-
+ 
   return (
     <div className="app">
       <aside className="sidebar">
@@ -402,7 +406,7 @@ function App({session}){
         </div>
         <button className="btn small mt" style={{width:"100%",justifyContent:"center"}} onClick={async ()=>{ await sb.auth.signOut(); location.reload(); }}>Chiqish</button>
       </aside>
-
+ 
       <nav className="mobile-nav">
         {NAV.filter(n=>!n.admin || isAdmin).map(n=>(
           <button key={n.id} className={view===n.id?"active":""} onClick={()=>{setView(n.id); if(n.id==="staff") loadProfiles();}}>
@@ -411,7 +415,7 @@ function App({session}){
           </button>
         ))}
       </nav>
-
+ 
       <main className="main">
         <div className="topbar">
           <h1>{NAV.find(n=>n.id===view)?.label}</h1>
@@ -420,11 +424,11 @@ function App({session}){
           <button className="btn small mobile-logout" onClick={async ()=>{ await sb.auth.signOut(); location.reload(); }}>Chiqish</button>
         </div>
         {toast && <div className="ok" style={{position:"fixed",top:16,right:16,zIndex:99}}>{toast}</div>}
-
+ 
         {view==="dashboard" && (
           <DashboardView {...{rooms, sessions, products, cash, sales, expenses, now, onGoRooms:()=>setView("rooms"), onGoStock:()=>setView("stock")}} />
         )}
-
+ 
         {view==="rooms" && (
           <RoomsView {...{rooms, sessions, products, customers, now, canOperate, isAdmin, notify,
             onStart:(room)=>setModal({type:"start", room}),
@@ -452,7 +456,7 @@ function App({session}){
           <StaffView {...{profiles, callRpc}}/>
         )}
       </main>
-
+ 
       {modal?.type==="start" && (
         <StartModal room={modal.room} customers={customers}
           onClose={()=>setModal(null)}
@@ -505,7 +509,7 @@ function App({session}){
     </div>
   );
 }
-
+ 
 /* ================= BOSHQARUV (DASHBOARD) ================= */
 function Kpi({label, value, accent, sub}){
   return (
@@ -516,7 +520,7 @@ function Kpi({label, value, accent, sub}){
     </div>
   );
 }
-
+ 
 function DashboardView({rooms, sessions, products, cash, sales, expenses, now, onGoRooms, onGoStock}){
   const today = new Date().toDateString();
   const todayCash = cash.filter(c=>new Date(c.created_at).toDateString()===today);
@@ -527,12 +531,12 @@ function DashboardView({rooms, sessions, products, cash, sales, expenses, now, o
   const busyRooms = rooms.filter(r=>r.status==="busy");
   const lowStock = products.filter(p=>Number(p.stock_qty)<=Number(p.min_stock));
   const salesToday = sales.filter(s=>new Date(s.created_at).toDateString()===today);
-
+ 
   const overtimeRooms = busyRooms.filter(r=>{
     const s = sessions.find(x=>x.room_id===r.id);
     return s && s.ends_at && (new Date(s.ends_at).getTime() - now) <= 0;
   });
-
+ 
   return (
     <div>
       <div className="grid" style={{gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))", marginBottom:22}}>
@@ -542,7 +546,7 @@ function DashboardView({rooms, sessions, products, cash, sales, expenses, now, o
         <Kpi label="Faol xonalar" value={busyRooms.length+" / "+rooms.length} />
         <Kpi label="Bugungi sotuvlar" value={salesToday.length+" ta"} />
       </div>
-
+ 
       {overtimeRooms.length>0 && (
         <div className="card" style={{marginBottom:22, borderColor:"var(--red)", background:"var(--red-bg)"}}>
           <div style={{display:"flex", alignItems:"center", gap:10, fontWeight:700, color:"var(--red)"}}>
@@ -552,7 +556,7 @@ function DashboardView({rooms, sessions, products, cash, sales, expenses, now, o
           <button className="btn small mt" onClick={onGoRooms}>Xonalarga o'tish →</button>
         </div>
       )}
-
+ 
       <div className="grid" style={{gridTemplateColumns:"1.3fr 1fr", gap:16}}>
         <div className="card">
           <h3 className="section-title">Xonalar holati</h3>
@@ -574,7 +578,7 @@ function DashboardView({rooms, sessions, products, cash, sales, expenses, now, o
           </div>
           <button className="btn small mt" onClick={onGoRooms}>Barcha xonalarni ko'rish →</button>
         </div>
-
+ 
         <div className="card">
           <h3 className="section-title">Ombor ogohlantirishi</h3>
           {lowStock.length===0 && <div className="muted">Kam qoldiqdagi mahsulot yo'q — hammasi yetarli.</div>}
@@ -590,10 +594,10 @@ function DashboardView({rooms, sessions, products, cash, sales, expenses, now, o
     </div>
   );
 }
-
+ 
 /* ================= XONALAR ================= */
 const ROOM_STATUS = {free:"Bo'sh", busy:"Band", reserved:"Band qilingan", maintenance:"Ta'mir"};
-
+ 
 /* Vaqt tugaganda bir marotaba signal beradi: ovozli bip + toast.
    Web Audio API orqali — tashqi audio fayl kerak emas. */
 function playBeep(){
@@ -614,7 +618,7 @@ function playBeep(){
     });
   }catch(e){ /* audio yo'q brauzerda — jim o'tkazamiz */ }
 }
-
+ 
 function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdmin, notify, onStart, onEnd, onAddRoom, onEditRoom}){
   const warnedRef = useRef({});
   useEffect(()=>{
@@ -633,13 +637,13 @@ function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdm
       if(remainMin > 0 && warnedRef.current[room.id]) delete warnedRef.current[room.id];
     });
   }, [now, rooms, sessions]);
-
+ 
   useEffect(()=>{
     if(typeof Notification !== "undefined" && Notification.permission === "default"){
       Notification.requestPermission().catch(()=>{});
     }
   }, []);
-
+ 
   return (
     <div>
       <div style={{display:"flex",gap:10,marginBottom:16}}>
@@ -650,7 +654,7 @@ function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdm
           const s = sessions.find(x=>x.room_id===room.id);
           const busy = room.status==="busy" && s;
           const mins = busy ? Math.max(1, Math.ceil((now - new Date(s.started_at).getTime())/60000)) : 0;
-          const cost = busy ? Math.round(s.tariff_per_hour * mins/60) : 0;
+          const cost = busy ? roundMoney(s.tariff_per_hour * mins/60) : 0;
           const cartCount = (s?.cart||[]).reduce((a,c)=>a+Number(c.qty||0),0);
           const remainMin = (busy && s?.ends_at) ? Math.ceil((new Date(s.ends_at).getTime() - now)/60000) : null;
           const overTime = remainMin!=null && remainMin<=0;
@@ -698,16 +702,16 @@ function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdm
     </div>
   );
 }
-
+ 
 function StartModal({room, customers, onClose, onOk}){
   const [customerId, setCustomerId] = useState("");
   const [tariff, setTariff] = useState(room.day_price || room.hourly_rate);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
   useEffect(()=>{ setTariff(room.day_price || room.hourly_rate); },[room.id]);
-
+ 
   const plannedMin = (amount && Number(tariff)>0) ? Math.max(1, Math.round(Number(amount)/Number(tariff)*60)) : null;
-
+ 
   return (
     <Modal title={room.name + " — seans boshlash"} onClose={onClose}>
       <div className="field"><label>Tarif (soatiga)</label>
@@ -746,18 +750,18 @@ function StartModal({room, customers, onClose, onOk}){
     </Modal>
   );
 }
-
+ 
 function EndModal({room, session, products, customers, now, onClose, onOk}){
   const [method, setMethod] = useState("cash");
   const [customerId, setCustomerId] = useState(session.customer_id||"");
   const [cart, setCart] = useState([]);
   const mins = Math.max(1, Math.ceil((now - new Date(session.started_at).getTime())/60000));
-  const timeAmount = Math.round(session.tariff_per_hour * mins/60);
+  const timeAmount = roundMoney(session.tariff_per_hour * mins/60);
   const prepaid = Number(session.prepaid_amount||0);
   const dueTime = Math.max(0, timeAmount - prepaid);
   const cartTotal = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
   const total = dueTime + cartTotal;
-
+ 
   function addToCart(p){
     setCart(prev=>{
       const ex = prev.find(c=>c.product_id===p.id);
@@ -767,7 +771,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
   }
   const setQty = (id,d)=>setCart(prev=>prev.map(c=>c.product_id===id?{...c,qty:Math.max(0,c.qty+d)}:c).filter(c=>c.qty>0));
   const cust = customers.find(c=>c.id===customerId);
-
+ 
   return (
     <Modal title={room.name + " — seansni yakunlash"} onClose={onClose} width={560}>
       <div className="grid" style={{gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}}>
@@ -784,7 +788,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
           </div>
         </div>
       </div>
-
+ 
       <div className="field"><label>To'lov usuli</label>
         <div className="seg">
           {[["cash","Naqd"],["card","Karta"],["balance","Balans"]].map(([v,l])=>(
@@ -801,7 +805,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
           {cust && Number(cust.balance) < total && <div className="err mt">Balans yetarli emas!</div>}
         </div>
       )}
-
+ 
       <div className="field"><label>Savatga mahsulot qo'shish (ixtiyoriy)</label>
         <div className="grid pos-grid">
           {products.filter(p=>p.active).map(p=>(
@@ -827,7 +831,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
           </div>
         )}
       </div>
-
+ 
       <div className="modal-actions">
         <button className="btn primary" disabled={method==="balance" && (!customerId || Number(cust?.balance)<total)}
           onClick={()=>onOk(method, customerId||null, cart)}>Yakunlash — {money(total)}</button>
@@ -836,7 +840,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
     </Modal>
   );
 }
-
+ 
 function RoomFormModal({room, onClose, onSave}){
   const [name, setName] = useState(room?.name||"");
   const [day, setDay] = useState(room?.day_price??room?.hourly_rate??20000);
@@ -853,7 +857,7 @@ function RoomFormModal({room, onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 /* ================= SOTUV (POS) ================= */
 function PosView({products, customers, callRpc, notify}){
   const [cart, setCart] = useState([]);
@@ -862,12 +866,12 @@ function PosView({products, customers, callRpc, notify}){
   const [busy, setBusy] = useState(false);
   const total = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
   const cust = customers.find(c=>c.id===customerId);
-
+ 
   const add = (p)=>setCart(prev=>{ const ex=prev.find(c=>c.product_id===p.id);
     if(ex) return prev.map(c=>c.product_id===p.id?{...c,qty:c.qty+1}:c);
     return [...prev,{product_id:p.id, qty:1}]; });
   const setQty = (id,d)=>setCart(prev=>prev.map(c=>c.product_id===id?{...c,qty:Math.max(0,c.qty+d)}:c).filter(c=>c.qty>0));
-
+ 
   async function pay(){
     if(!cart.length) return;
     setBusy(true);
@@ -875,7 +879,7 @@ function PosView({products, customers, callRpc, notify}){
     setBusy(false);
     if(ok) setCart([]);
   }
-
+ 
   return (
     <div className="pos">
       <div>
@@ -928,7 +932,7 @@ function PosView({products, customers, callRpc, notify}){
     </div>
   );
 }
-
+ 
 /* ================= OMBOR ================= */
 function StockView({products, isAdmin, onAdd, onRestock, onEdit}){
   const low = products.filter(p=>Number(p.stock_qty)<=Number(p.min_stock));
@@ -964,7 +968,7 @@ function StockView({products, isAdmin, onAdd, onRestock, onEdit}){
     </div>
   );
 }
-
+ 
 function ProductFormModal({product, onClose, onSave}){
   const [f, setF] = useState({name:product?.name||"", category:product?.category||"", cost:product?.cost??"", price:product?.price??"", stock_qty:product?.stock_qty??0, min_stock:product?.min_stock??5, active:product?.active??true});
   const set = (k,v)=>setF(prev=>({...prev,[k]:v}));
@@ -985,7 +989,7 @@ function ProductFormModal({product, onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 function RestockModal({product, onClose, onSave}){
   const [qty, setQty] = useState(10);
   const [cost, setCost] = useState(product.cost||"");
@@ -1000,7 +1004,7 @@ function RestockModal({product, onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 /* ================= MIJOZLAR ================= */
 function ClientsView({customers, isStaff, onAdd, onTopup}){
   return (
@@ -1027,7 +1031,7 @@ function ClientsView({customers, isStaff, onAdd, onTopup}){
     </div>
   );
 }
-
+ 
 function CustomerFormModal({onClose, onSave}){
   const [f, setF] = useState({name:"", phone:""});
   return (
@@ -1041,7 +1045,7 @@ function CustomerFormModal({onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 function TopupModal({customer, onClose, onSave}){
   const [amount, setAmount] = useState(50000);
   const [method, setMethod] = useState("cash");
@@ -1062,7 +1066,7 @@ function TopupModal({customer, onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 /* ================= KASSA ================= */
 function CashView({cash, expenses, isStaff, onExpense}){
   const today = new Date().toDateString();
@@ -1098,7 +1102,7 @@ function CashView({cash, expenses, isStaff, onExpense}){
     </div>
   );
 }
-
+ 
 function ExpenseModal({onClose, onSave}){
   const [f, setF] = useState({title:"", amount:"", category:"umumiy"});
   return (
@@ -1119,7 +1123,7 @@ function ExpenseModal({onClose, onSave}){
     </Modal>
   );
 }
-
+ 
 /* ================= HISOBOT ================= */
 function ReportsView({cash, sales, sessions, expenses, products}){
   const today = new Date().toDateString();
@@ -1161,7 +1165,7 @@ function ReportsView({cash, sales, sessions, expenses, products}){
     </div>
   );
 }
-
+ 
 /* ================= XODIMLAR ================= */
 function StaffView({profiles, callRpc}){
   const ROLE = {admin:"Admin", operator:"Operator", cashier:"Kassir"};
@@ -1189,7 +1193,7 @@ function StaffView({profiles, callRpc}){
     </div>
   );
 }
-
+ 
 /* ================= ROOT ================= */
 function Root(){
   const [session, setSession] = useState(undefined); // undefined = loading
@@ -1205,7 +1209,7 @@ function Root(){
   if(!session) return <AuthScreen onReady={setSession}/>;
   return <App session={session}/>;
 }
-
+ 
 ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
 </script>
 </head>
@@ -1213,3 +1217,4 @@ ReactDOM.createRoot(document.getElementById("root")).render(<Root/>);
 <div id="root"></div>
 </body>
 </html>
+ 
