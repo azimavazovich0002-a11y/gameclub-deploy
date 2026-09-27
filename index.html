@@ -511,7 +511,11 @@ function App({session}){
         {view==="reports" && (
           <ReportsView {...{cash, sales, sessions, expenses, products, isAdmin,
             backupData:{rooms, products, customers, sales, cash, expenses, suppliers, supplierTx, supplierPayments, customerDebts},
-            onClearTransactions:(resetStock)=>callRpc("gc_admin_clear_transactions",{p_reset_stock:!!resetStock}, resetStock?"Tranzaksiya + ombor tozalandi":"Tranzaksiya tarixi tozalandi"),
+            onClearTransactions:async (resetStock)=>{
+              const ok = await callRpc("gc_admin_clear_transactions", {p_reset_stock: !!resetStock},
+                resetStock ? "Tranzaksiya + ombor tozalandi" : "Tranzaksiya tarixi tozalandi");
+              return ok;
+            },
             onRestoreSuppliers:async (data)=>{
               const {error} = await sb.rpc("gc_admin_restore_suppliers",{p_data:data});
               if(error){ notify("Xato: "+error.message); return false; }
