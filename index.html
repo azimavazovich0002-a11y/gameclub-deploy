@@ -287,9 +287,7 @@ const NAV = [
   {id:"stock", label:"Ombor"},
   {id:"clients", label:"Mijozlar"},
   {id:"cash", label:"Kassa"},
-  {id:"debts", label:"Qarzlar", admin:true},
   {id:"reports", label:"Hisobot"},
-  {id:"chat", label:"Chat"},
   {id:"staff", label:"Xodimlar", admin:true},
 ];
 const NAV_ICONS = {
@@ -301,8 +299,6 @@ const NAV_ICONS = {
   cash: <svg viewBox="0 0 20 20" fill="none"><rect x="2.3" y="5.5" width="15.4" height="9.5" rx="1.8" stroke="currentColor" strokeWidth="1.5"/><circle cx="10" cy="10.2" r="2.3" stroke="currentColor" strokeWidth="1.5"/><path d="M5 8v-.3c0-1 .8-1.8 1.8-1.8M15 12.5v.3c0 1-.8 1.8-1.8 1.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>,
   reports: <svg viewBox="0 0 20 20" fill="none"><path d="M4 16.5V9M9.3 16.5V4.5M14.6 16.5v-6.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/><path d="M2.5 16.5h15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
   staff: <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="6.3" r="3" stroke="currentColor" strokeWidth="1.5"/><path d="M3.5 17c.7-4 3-6 6.5-6s5.8 2 6.5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
-  chat: <svg viewBox="0 0 20 20" fill="none"><path d="M3 4.8h14v8.4H8.6L5 16.4v-3.2H3V4.8Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>,
-  debts: <svg viewBox="0 0 20 20" fill="none"><path d="M10 2.5 3 6v3c0 4.5 3 7.6 7 8.5 4-.9 7-4 7-8.5V6l-7-3.5Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/><path d="M10 7v4M10 13.2h.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>,
 };
 
 function App({session}){
@@ -316,8 +312,6 @@ function App({session}){
   const [sales, setSales] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [profiles, setProfiles] = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [debts, setDebts] = useState([]);
   const [live, setLive] = useState(false);
   const [toast, setToast] = useState("");
   const [modal, setModal] = useState(null); // {type, ...}
@@ -332,7 +326,7 @@ function App({session}){
 
   async function refreshAll(){
     try{
-      const [r, s, p, c, ct, sl, ex, msg, dbt] = await Promise.all([
+      const [r, s, p, c, ct, sl, ex] = await Promise.all([
         sbFetchAll("rooms"),
         sb.from("sessions").select("*").eq("status","open"),
         sbFetchAll("products"),
@@ -340,8 +334,6 @@ function App({session}){
         sb.from("cash_transactions").select("*").order("created_at",{ascending:false}).limit(500),
         sb.from("sales").select("*, sale_items(*)").order("created_at",{ascending:false}).limit(300),
         sbFetchAll("expenses"),
-        sb.from("messages").select("*").order("created_at",{ascending:false}).limit(300),
-        sb.from("debts").select("*").order("created_at",{ascending:false}).limit(300),
       ]);
       setRooms((r||[]).sort((a,b)=>a.sort_order-b.sort_order));
       setSessions(s.data||[]);
@@ -350,8 +342,6 @@ function App({session}){
       setCash(ct.data||[]);
       setSales(sl.data||[]);
       setExpenses(ex||[]);
-      setMessages((msg.data||[]).slice().reverse());
-      setDebts(dbt.data||[]);
     }catch(e){ console.error(e); }
   }
 
@@ -368,8 +358,6 @@ function App({session}){
         .on("postgres_changes",{event:"*",schema:"public",table:"customers"}, refreshAll)
         .on("postgres_changes",{event:"*",schema:"public",table:"cash_transactions"}, refreshAll)
         .on("postgres_changes",{event:"*",schema:"public",table:"sales"}, refreshAll)
-        .on("postgres_changes",{event:"*",schema:"public",table:"messages"}, refreshAll)
-        .on("postgres_changes",{event:"*",schema:"public",table:"debts"}, refreshAll)
         .subscribe((st)=>setLive(st==="SUBSCRIBED"));
       if(isAdminRef.current){ /* profiles loaded in StaffView */ }
     })();
@@ -458,22 +446,13 @@ function App({session}){
           <ClientsView {...{customers, isStaff, callRpc, onAdd:()=>setModal({type:"addCustomer"}), onTopup:(c)=>setModal({type:"topup", customer:c})}}/>
         )}
         {view==="cash" && (
-          <CashView {...{cash, expenses, isStaff, isAdmin, onExpense:()=>setModal({type:"expense"}), onIncome:()=>setModal({type:"income"})}}/>
+          <CashView {...{cash, expenses, isStaff, onExpense:()=>setModal({type:"expense"})}}/>
         )}
         {view==="reports" && (
           <ReportsView {...{cash, sales, sessions, expenses, products}}/>
         )}
-        {view==="chat" && (
-          <ChatView {...{messages, callRpc}}/>
-        )}
-        {view==="debts" && isAdmin && (
-          <DebtsView {...{debts, callRpc}}/>
-        )}
         {view==="staff" && isAdmin && (
-          <StaffView {...{profiles, cash, callRpc,
-            onSalary:(p, salary)=>callRpc("gc_set_monthly_salary",{p_user_id:p.id, p_salary:salary}, "Oylik maosh yangilandi"),
-            onHireDate:(p, date)=>callRpc("gc_set_hire_date",{p_user_id:p.id, p_hire_date:date}, "Sana yangilandi"),
-            onAdvance:(p)=>setModal({type:"advance", employee:p})}}/>
+          <StaffView {...{profiles, callRpc}}/>
         )}
       </main>
 
@@ -488,28 +467,9 @@ function App({session}){
       {modal?.type==="end" && (
         <EndModal room={modal.room} session={modal.session} products={products} customers={customers} now={now}
           onClose={()=>setModal(null)}
-          onOk={async (method, customerId, cart, cashReceived)=>{
-            const ok = await callRpc("gc_end_session",
-              {p_session_id:modal.session.id, p_method:method, p_cart:cart, p_cash_received:cashReceived},
+          onOk={async (method, customerId, cart)=>{
+            const ok = await callRpc("gc_end_session",{p_session_id:modal.session.id, p_method:method, p_cart:cart},
               "Seans yopildi");
-            if(ok) setModal(null);
-          }}/>
-      )}
-      {modal?.type==="income" && (
-        <IncomeModal onClose={()=>setModal(null)}
-          onSave={async (f)=>{
-            const ok = await callRpc("gc_add_manual_income",
-              {p_amount:f.amount, p_category:f.category, p_description:f.title||null, p_method:f.method},
-              "Kirim qo'shildi");
-            if(ok) setModal(null);
-          }}/>
-      )}
-      {modal?.type==="advance" && (
-        <AdvanceModal employee={modal.employee} cash={cash} onClose={()=>setModal(null)}
-          onSave={async (amount, note)=>{
-            const ok = await callRpc("gc_give_advance",
-              {p_employee_id:modal.employee.id, p_amount:amount, p_note:note||null},
-              "Avans berildi");
             if(ok) setModal(null);
           }}/>
       )}
@@ -529,9 +489,9 @@ function App({session}){
         const {error} = await sb.from("products").update(f).eq("id",modal.product.id);
         if(error) notify("Xato: "+error.message); else { notify("Saqlandi"); setModal(null); refreshAll(); }
       }}/>}
-      {modal?.type==="restock" && <RestockModal product={modal.product} onClose={()=>setModal(null)} onSave={async (qty, cost, supplier, paid, method)=>{
-        const {error} = await sb.rpc("gc_restock_v2", {p_product_id:modal.product.id, p_qty:qty, p_cost:cost, p_supplier_name:supplier||null, p_paid:paid, p_method:method});
-        if(error) notify("Xato: "+error.message); else { notify(paid?"Omborga qo'shildi":"Omborga qo'shildi (qarzga yozildi)"); setModal(null); refreshAll(); }
+      {modal?.type==="restock" && <RestockModal product={modal.product} onClose={()=>setModal(null)} onSave={async (qty, cost)=>{
+        const {error} = await sb.rpc("gc_restock", {p_product_id:modal.product.id, p_qty:qty, p_cost:cost});
+        if(error) notify("Xato: "+error.message); else { notify("Omborga qo'shildi"); setModal(null); refreshAll(); }
       }}/>}
       {modal?.type==="addCustomer" && <CustomerFormModal onClose={()=>setModal(null)} onSave={async (f)=>{
         const {error} = await sb.from("customers").insert(f);
@@ -794,16 +754,12 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
   const [method, setMethod] = useState("cash");
   const [customerId, setCustomerId] = useState(session.customer_id||"");
   const [cart, setCart] = useState([]);
-  const [received, setReceived] = useState("");
   const mins = Math.max(1, Math.ceil((now - new Date(session.started_at).getTime())/60000));
   const timeAmount = roundMoney(session.tariff_per_hour * mins/60);
   const prepaid = Number(session.prepaid_amount||0);
   const dueTime = Math.max(0, timeAmount - prepaid);
   const cartTotal = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
   const total = dueTime + cartTotal;
-  const receivedNum = received==="" ? null : Number(received);
-  const cashDiff = (method==="cash" && receivedNum!=null) ? Math.round((receivedNum - total)*100)/100 : 0;
-  const cashTooLittle = method==="cash" && receivedNum!=null && receivedNum < total;
 
   function addToCart(p){
     setCart(prev=>{
@@ -839,19 +795,6 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
           ))}
         </div>
       </div>
-      {method==="cash" && (
-        <div className="field">
-          <label>Mijozdan qabul qilingan naqd summa</label>
-          <input className="input num" type="number" placeholder={String(total)} value={received}
-                 onChange={e=>setReceived(e.target.value)}/>
-          {receivedNum!=null && cashTooLittle && (
-            <div className="err mt">Kam! Kerak {money(total)}, kiritilgan {money(receivedNum)}. Seansni yopish uchun to'liq summa yig'ing.</div>
-          )}
-          {receivedNum!=null && !cashTooLittle && cashDiff>0 && (
-            <div className="muted mt">Ortiqcha {money(cashDiff)} kassaga "ustama" sifatida alohida yoziladi.</div>
-          )}
-        </div>
-      )}
       {method==="balance" && (
         <div className="field"><label>Mijoz</label>
           <select className="input" value={customerId} onChange={e=>setCustomerId(e.target.value)}>
@@ -889,11 +832,8 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
       </div>
 
       <div className="modal-actions">
-        <button className="btn primary"
-          disabled={(method==="balance" && (!customerId || Number(cust?.balance)<total)) || cashTooLittle}
-          onClick={()=>onOk(method, customerId||null, cart, method==="cash" ? receivedNum : null)}>
-          Yakunlash — {money(total)}{method==="cash" && cashDiff>0 ? ` (+${money(cashDiff)} ustama)` : ""}
-        </button>
+        <button className="btn primary" disabled={method==="balance" && (!customerId || Number(cust?.balance)<total)}
+          onClick={()=>onOk(method, customerId||null, cart)}>Yakunlash — {money(total)}</button>
         <button className="btn" onClick={onClose}>Bekor</button>
       </div>
     </Modal>
@@ -1052,32 +992,12 @@ function ProductFormModal({product, onClose, onSave}){
 function RestockModal({product, onClose, onSave}){
   const [qty, setQty] = useState(10);
   const [cost, setCost] = useState(product.cost||"");
-  const [supplier, setSupplier] = useState("");
-  const [paid, setPaid] = useState(true);
-  const [method, setMethod] = useState("cash");
   return (
     <Modal title={product.name + " — omborga qo'shish"} onClose={onClose}>
       <div className="field"><label>Miqdor</label><input className="input num" type="number" min="1" value={qty} onChange={e=>setQty(e.target.value)}/></div>
       <div className="field"><label>Tannarx (yangi partiya)</label><input className="input num" type="number" value={cost} onChange={e=>setCost(e.target.value)}/></div>
-      <div className="field"><label>Ta'minotchi (ixtiyoriy)</label><input className="input" placeholder="masalan: Aziz aka" value={supplier} onChange={e=>setSupplier(e.target.value)}/></div>
-      <div className="field"><label>To'lov holati</label>
-        <div className="seg">
-          <button type="button" className={paid?"on":""} onClick={()=>setPaid(true)}>Hozir to'landi</button>
-          <button type="button" className={!paid?"on":""} onClick={()=>setPaid(false)}>Qarzga (keyinroq)</button>
-        </div>
-      </div>
-      {paid && (
-        <div className="field"><label>Usul</label>
-          <div className="seg">
-            {[["cash","Naqd"],["card","Karta"]].map(([v,l])=>(
-              <button key={v} type="button" className={method===v?"on":""} onClick={()=>setMethod(v)}>{l}</button>
-            ))}
-          </div>
-        </div>
-      )}
-      {!paid && <div className="muted mt">Summa "Qarzlar" ro'yxatiga yoziladi, kassadan hozircha ayirilmaydi.</div>}
       <div className="modal-actions">
-        <button className="btn primary" disabled={!(Number(qty)>0)} onClick={()=>onSave(Number(qty), Number(cost)||product.cost||0, supplier, paid, method)}>Qo'shish</button>
+        <button className="btn primary" disabled={!(Number(qty)>0)} onClick={()=>onSave(Number(qty), Number(cost)||product.cost||0)}>Qo'shish</button>
         <button className="btn" onClick={onClose}>Bekor</button>
       </div>
     </Modal>
@@ -1147,13 +1067,12 @@ function TopupModal({customer, onClose, onSave}){
 }
 
 /* ================= KASSA ================= */
-function CashView({cash, expenses, isStaff, isAdmin, onExpense, onIncome}){
+function CashView({cash, expenses, isStaff, onExpense}){
   const today = new Date().toDateString();
   const tCash = cash.filter(c=>new Date(c.created_at).toDateString()===today);
   const tin = tCash.filter(c=>c.direction==="in").reduce((a,c)=>a+Number(c.amount),0);
   const tout = tCash.filter(c=>c.direction==="out").reduce((a,c)=>a+Number(c.amount),0);
-  const TYPE = {session_payment:"Seans", sale:"Sotuv", topup:"To'ldirish", expense:"Xarajat", debt_payment:"Qarz to'lovi", manual:"Qo'lda",
-    manual_in:"Kirim (rahbar)", avans:"Avans", cash_rounding:"Naqd ustama", supplier_payment:"Ta'minotchi"};
+  const TYPE = {session_payment:"Seans", sale:"Sotuv", topup:"To'ldirish", expense:"Xarajat", debt_payment:"Qarz", manual:"Qo'lda"};
   return (
     <div>
       <div className="grid kpis" style={{marginBottom:16}}>
@@ -1161,10 +1080,7 @@ function CashView({cash, expenses, isStaff, isAdmin, onExpense, onIncome}){
         <div className="card kpi"><div className="kpi-accent" style={{background:"var(--red)"}}></div><div className="kpi-label">Chiqim (bugun)</div><div className="kpi-value num" style={{color:"var(--red)"}}>{money(tout)}</div></div>
         <div className="card kpi"><div className="kpi-accent" style={{background:"var(--teal)"}}></div><div className="kpi-label">Sof (bugun)</div><div className="kpi-value num">{money(tin-tout)}</div></div>
       </div>
-      {isStaff && <div style={{marginBottom:16, display:"flex", gap:10}}>
-        <button className="btn danger" onClick={onExpense}>+ Xarajat</button>
-        {isAdmin && <button className="btn primary" onClick={onIncome}>+ Kirim</button>}
-      </div>}
+      {isStaff && <div style={{marginBottom:16}}><button className="btn danger" onClick={onExpense}>+ Xarajat</button></div>}
       <div className="card">
         <h3 className="section-title">Pul oqimlari</h3>
         <table>
@@ -1183,34 +1099,6 @@ function CashView({cash, expenses, isStaff, isAdmin, onExpense, onIncome}){
         </table>
       </div>
     </div>
-  );
-}
-
-function IncomeModal({onClose, onSave}){
-  const [f, setF] = useState({title:"", amount:"", category:"rahbar yordami", method:"cash"});
-  return (
-    <Modal title="Qo'lda kirim qo'shish" onClose={onClose}>
-      <div className="field"><label>Izoh</label><input className="input" value={f.title} onChange={e=>setF({...f,title:e.target.value})}/></div>
-      <div className="grid" style={{gridTemplateColumns:"1fr 1fr",gap:10}}>
-        <div className="field"><label>Summa</label><input className="input num" type="number" value={f.amount} onChange={e=>setF({...f,amount:e.target.value})}/></div>
-        <div className="field"><label>Kategoriya</label>
-          <select className="input" value={f.category} onChange={e=>setF({...f,category:e.target.value})}>
-            {["rahbar yordami","kapital","boshqa kirim"].map(c=><option key={c}>{c}</option>)}
-          </select>
-        </div>
-      </div>
-      <div className="field"><label>Usul</label>
-        <div className="seg">
-          {[["cash","Naqd"],["card","Karta"]].map(([v,l])=>(
-            <button key={v} type="button" className={f.method===v?"on":""} onClick={()=>setF({...f,method:v})}>{l}</button>
-          ))}
-        </div>
-      </div>
-      <div className="modal-actions">
-        <button className="btn primary" disabled={!(Number(f.amount)>0)} onClick={()=>onSave({...f, amount:Number(f.amount)})}>Saqlash</button>
-        <button className="btn" onClick={onClose}>Bekor</button>
-      </div>
-    </Modal>
   );
 }
 
@@ -1278,29 +1166,15 @@ function ReportsView({cash, sales, sessions, expenses, products}){
 }
 
 /* ================= XODIMLAR ================= */
-function StaffView({profiles, cash, callRpc, onSalary, onHireDate, onAdvance}){
+function StaffView({profiles, callRpc}){
   const ROLE = {admin:"Admin", operator:"Operator", cashier:"Kassir"};
-  const earnedToDate = (p)=>{
-    const salary = Number(p.monthly_salary||0);
-    const hire = p.hire_date ? new Date(p.hire_date) : new Date();
-    const days = Math.max(0, (Date.now() - hire.getTime())/86400000);
-    return salary * (days/30);
-  };
-  const usedTotal = (id)=> cash
-    .filter(c=>c.txn_type==="avans" && c.ref_id===id)
-    .reduce((a,c)=>a+Number(c.amount),0);
   return (
     <div className="card">
       <p className="muted" style={{marginTop:0}}>Yangi xodim: Authentication → Users → Add user (email+parol). Ro'yxatdan o'tganlar shu yerda paydo bo'ladi.</p>
       <table>
-        <thead><tr><th>Ism</th><th>Rol</th><th>Holat</th><th>Ishga kirgan</th><th>Oylik maosh</th><th>Jami olingan avans</th><th>Qolgan limit</th><th></th></tr></thead>
+        <thead><tr><th>Ism</th><th>Rol</th><th>Holat</th></tr></thead>
         <tbody>
-          {profiles.map(p=>{
-            const salary = Number(p.monthly_salary||0);
-            const earned = earnedToDate(p);
-            const used = usedTotal(p.id);
-            const left = earned - used;
-            return (
+          {profiles.map(p=>(
             <tr key={p.id}>
               <td>{p.full_name}</td>
               <td>
@@ -1310,136 +1184,11 @@ function StaffView({profiles, cash, callRpc, onSalary, onHireDate, onAdvance}){
                 </select>
               </td>
               <td className="muted">{p.is_active?"Faol":"Nofaol"}</td>
-              <td>
-                <input className="input" type="date" style={{width:145,padding:"6px 10px"}} defaultValue={p.hire_date||""}
-                  onBlur={e=>{ if(e.target.value && e.target.value!==p.hire_date) onHireDate(p, e.target.value); }}/>
-              </td>
-              <td>
-                <input className="input num" type="number" style={{width:110,padding:"6px 10px"}} defaultValue={salary}
-                  onBlur={e=>{ const v=Number(e.target.value)||0; if(v!==salary) onSalary(p, v); }}/>
-              </td>
-              <td className="num muted">{money(used)}</td>
-              <td className="num" style={{fontWeight:700, color: left<0 ? "var(--red)" : "var(--txt-0)"}}>
-                {money(left)}
-                {left<0 && <div className="muted" style={{fontSize:11,fontWeight:400,color:"var(--red)"}}>limitdan oshgan!</div>}
-              </td>
-              <td><button className="btn small" onClick={()=>onAdvance(p)}>Avans berish</button></td>
             </tr>
-          );})}
+          ))}
         </tbody>
       </table>
       {!profiles.length && <div className="muted" style={{padding:12}}>Yuklanmoqda...</div>}
-    </div>
-  );
-}
-
-function AdvanceModal({employee, cash, onClose, onSave}){
-  const [amount, setAmount] = useState("");
-  const [note, setNote] = useState("");
-  const salary = Number(employee.monthly_salary||0);
-  const hire = employee.hire_date ? new Date(employee.hire_date) : new Date();
-  const days = Math.max(0, (Date.now() - hire.getTime())/86400000);
-  const earned = salary * (days/30);
-  const used = cash.filter(c=>c.txn_type==="avans" && c.ref_id===employee.id).reduce((a,c)=>a+Number(c.amount),0);
-  const left = earned - used;
-  const afterLeft = left - (Number(amount)||0);
-  return (
-    <Modal title={employee.full_name + " — avans berish"} onClose={onClose}>
-      <div className="muted" style={{marginBottom:10}}>Oylik maosh: {money(salary)} · hozirgacha to'plangan: {money(earned)} · jami olingan avans: {money(used)} · qolgan limit: {money(left)}</div>
-      <div className="field"><label>Summa</label><input className="input num" type="number" value={amount} onChange={e=>setAmount(e.target.value)}/></div>
-      <div className="field"><label>Izoh (ixtiyoriy)</label><input className="input" value={note} onChange={e=>setNote(e.target.value)}/></div>
-      {amount && afterLeft<0 && (
-        <div className="err mt">Diqqat: bu avansdan keyin limitdan {money(Math.abs(afterLeft))}ga oshib ketadi.</div>
-      )}
-      <div className="modal-actions">
-        <button className="btn primary" disabled={!(Number(amount)>0)} onClick={()=>onSave(Number(amount), note)}>Berish</button>
-        <button className="btn" onClick={onClose}>Bekor</button>
-      </div>
-    </Modal>
-  );
-}
-
-function DebtsView({debts, callRpc}){
-  const open = debts.filter(d=>d.status==="open");
-  const paid = debts.filter(d=>d.status!=="open");
-  const totalOpen = open.reduce((a,d)=>a+Number(d.amount),0);
-  return (
-    <div>
-      <div className="grid kpis" style={{marginBottom:16}}>
-        <div className="card kpi"><div className="kpi-accent" style={{background:"var(--red)"}}></div><div className="kpi-label">Ochiq qarzlar jami</div><div className="kpi-value num" style={{color:"var(--red)"}}>{money(totalOpen)}</div></div>
-      </div>
-      <div className="card">
-        <h3 className="section-title">Ochiq qarzlar</h3>
-        <table>
-          <thead><tr><th>Sana</th><th>Kimga</th><th>Izoh</th><th style={{textAlign:"right"}}>Summa</th><th></th></tr></thead>
-          <tbody>
-            {open.map(d=>(
-              <tr key={d.id}>
-                <td className="num muted">{new Date(d.created_at).toLocaleDateString("uz-UZ")}</td>
-                <td>{d.party_name}</td>
-                <td className="muted">{d.description}</td>
-                <td className="num" style={{textAlign:"right",fontWeight:700}}>{money(d.amount)}</td>
-                <td><button className="btn small" onClick={()=>callRpc("gc_pay_debt",{p_debt_id:d.id, p_method:"cash"}, "Qarz to'landi")}>To'ladim</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!open.length && <div className="muted" style={{padding:12}}>Ochiq qarz yo'q</div>}
-      </div>
-      {!!paid.length && (
-        <div className="card mt">
-          <h3 className="section-title">Yopilgan qarzlar</h3>
-          <table>
-            <thead><tr><th>Sana</th><th>Kimga</th><th>Izoh</th><th style={{textAlign:"right"}}>Summa</th></tr></thead>
-            <tbody>
-              {paid.map(d=>(
-                <tr key={d.id}>
-                  <td className="num muted">{new Date(d.paid_at||d.created_at).toLocaleDateString("uz-UZ")}</td>
-                  <td>{d.party_name}</td>
-                  <td className="muted">{d.description}</td>
-                  <td className="num" style={{textAlign:"right"}}>{money(d.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function ChatView({messages, callRpc}){
-  const [text, setText] = useState("");
-  const endRef = useRef(null);
-  useEffect(()=>{ endRef.current?.scrollIntoView({block:"end"}); },[messages.length]);
-  async function send(){
-    const body = text.trim();
-    if(!body) return;
-    setText("");
-    await callRpc("gc_send_message", {p_body:body, p_channel:"umumiy"});
-  }
-  return (
-    <div className="card" style={{display:"flex", flexDirection:"column", height:"70vh"}}>
-      <h3 className="section-title">Eslatmalar devori</h3>
-      <div style={{flex:1, overflowY:"auto", display:"flex", flexDirection:"column", gap:10, padding:"4px 2px"}}>
-        {messages.map(m=>(
-          <div key={m.id} style={{maxWidth:"80%"}}>
-            <div className="muted" style={{fontSize:11}}>
-              <b style={{color:"var(--teal)"}}>{m.sender_name||"Xodim"}</b>{" · "}
-              {new Date(m.created_at).toLocaleString("uz-UZ",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}
-            </div>
-            <div style={{background:"var(--bg-2)", borderRadius:10, padding:"8px 12px", marginTop:2}}>{m.body}</div>
-          </div>
-        ))}
-        {!messages.length && <div className="muted">Hali xabar yo'q</div>}
-        <div ref={endRef}/>
-      </div>
-      <div style={{display:"flex", gap:8, marginTop:10}}>
-        <input className="input" style={{flex:1}} placeholder="Xabar yozing..." value={text}
-          onChange={e=>setText(e.target.value)}
-          onKeyDown={e=>{ if(e.key==="Enter") send(); }}/>
-        <button className="btn primary" onClick={send}>Yubor</button>
-      </div>
     </div>
   );
 }
