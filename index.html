@@ -467,8 +467,8 @@ function App({session}){
       {modal?.type==="end" && (
         <EndModal room={modal.room} session={modal.session} products={products} customers={customers} now={now}
           onClose={()=>setModal(null)}
-          onOk={async (method, customerId, cart)=>{
-            const ok = await callRpc("gc_end_session",{p_session_id:modal.session.id, p_method:method, p_cart:cart},
+          onOk={async (method, customerId, cart, receivedAmount)=>{
+            const ok = await callRpc("gc_end_session",{p_session_id:modal.session.id, p_method:method, p_cart:cart, p_received_amount:receivedAmount},
               "Seans yopildi");
             if(ok) setModal(null);
           }}/>
@@ -754,12 +754,15 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
   const [method, setMethod] = useState("cash");
   const [customerId, setCustomerId] = useState(session.customer_id||"");
   const [cart, setCart] = useState([]);
+  const [receivedInput, setReceivedInput] = useState("");
   const mins = Math.max(1, Math.ceil((now - new Date(session.started_at).getTime())/60000));
   const timeAmount = roundMoney(session.tariff_per_hour * mins/60);
   const prepaid = Number(session.prepaid_amount||0);
   const dueTime = Math.max(0, timeAmount - prepaid);
   const cartTotal = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
   const total = dueTime + cartTotal;
+  const receivedNum = receivedInput===""? total : Number(receivedInput)||0;
+  const extra = receivedNum - total;
 
   function addToCart(p){
     setCart(prev=>{
@@ -787,6 +790,14 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
           </div>
         </div>
       </div>
+
+      {method!=="balance" && (
+        <div className="field"><label>Kassaga qabul qilingan summa</label>
+          <input className="input num" type="number" placeholder={String(Math.round(total))} value={receivedInput} onChange={e=>setReceivedInput(e.target.value)}/>
+          {extra>0 && <div className="muted" style={{marginTop:6,color:"var(--teal)"}}>+{money(extra)} ortiqcha — qo'shimcha daromad sifatida yoziladi</div>}
+          {extra<0 && <div className="err mt">Kam tushdi: {money(-extra)}</div>}
+        </div>
+      )}
 
       <div className="field"><label>To'lov usuli</label>
         <div className="seg">
@@ -833,7 +844,7 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
 
       <div className="modal-actions">
         <button className="btn primary" disabled={method==="balance" && (!customerId || Number(cust?.balance)<total)}
-          onClick={()=>onOk(method, customerId||null, cart)}>Yakunlash — {money(total)}</button>
+          onClick={()=>onOk(method, customerId||null, cart, method==="balance"?null:(receivedInput===""?null:receivedNum))}>Yakunlash — {money(method==="balance"?total:receivedNum)}</button>
         <button className="btn" onClick={onClose}>Bekor</button>
       </div>
     </Modal>
