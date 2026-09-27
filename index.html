@@ -483,13 +483,14 @@ function App({session}){
           <PosView {...{products, customers, callRpc, notify}}/>
         )}
         {view==="stock" && (
-          <StockView {...{products, isAdmin, onAdd:()=>setModal({type:"addProduct"}), onRestock:(p)=>setModal({type:"restock", product:p}), onEdit:(p)=>setModal({type:"editProduct", product:p})}}/>
+          <StockView {...{products, isAdmin, onAdd:()=>setModal({type:"addProduct"}), onRestock:(p)=>setModal({type:"restock", product:p}), onEdit:(p)=>setModal({type:"editProduct", product:p}), onYukQabul:()=>setModal({type:"yukQabul"})}}/>
         )}
         {view==="suppliers" && (
           <SuppliersView {...{suppliers, supplierTx, supplierPayments, isStaff,
             onAddSupplier:()=>setModal({type:"addSupplier"}),
             onAddTx:(s)=>setModal({type:"supplierTx", supplier:s}),
             onPay:(s)=>setModal({type:"supplierPay", supplier:s}),
+            onYukQabul:()=>setModal({type:"yukQabul"}),
           }}/>
         )}
         {view==="clients" && (
@@ -510,7 +511,7 @@ function App({session}){
         {view==="reports" && (
           <ReportsView {...{cash, sales, sessions, expenses, products, isAdmin,
             backupData:{rooms, products, customers, sales, cash, expenses, suppliers, supplierTx, supplierPayments, customerDebts},
-            onClearTransactions:()=>callRpc("gc_admin_clear_transactions",{}, "Tranzaksiya tarixi tozalandi"),
+            onClearTransactions:(resetStock)=>callRpc("gc_admin_clear_transactions",{p_reset_stock:!!resetStock}, resetStock?"Tranzaksiya + ombor tozalandi":"Tranzaksiya tarixi tozalandi"),
             onRestoreSuppliers:async (data)=>{
               const {error} = await sb.rpc("gc_admin_restore_suppliers",{p_data:data});
               if(error){ notify("Xato: "+error.message); return false; }
@@ -605,6 +606,20 @@ function App({session}){
           onAdd={async (productId, qty)=>{ await callRpc("gc_session_add_item",{p_session_id:modal.session.id, p_product_id:productId, p_qty:qty}); }}
           onRemove={async (productId, qty)=>{ await callRpc("gc_session_remove_item",{p_session_id:modal.session.id, p_product_id:productId, p_qty:qty}); }}
         />
+      )}
+      {modal?.type==="yukQabul" && (
+        <YukQabulModal products={products} suppliers={suppliers}
+          onClose={()=>setModal(null)}
+          onSave={async (payload)=>{
+            const ok = await callRpc("gc_supplier_yuk_qabul", {
+              p_supplier_id: payload.supplierId,
+              p_items: payload.items,
+              p_total_amount: payload.total,
+              p_paid_amount: payload.paid,
+              p_description: payload.description || ""
+            }, "Yuk qabul qilindi");
+            if(ok) setModal(null);
+          }}/>
       )}
       {modal?.type==="expense" && <ExpenseModal onClose={()=>setModal(null)} onSave={async (f)=>{
         const ok = await callRpc("gc_add_expense",{p_title:f.title, p_amount:f.amount, p_category:f.category});
@@ -1108,12 +1123,13 @@ function PosView({products, customers, callRpc, notify}){
 }
 
 /* ================= OMBOR ================= */
-function StockView({products, isAdmin, onAdd, onRestock, onEdit}){
+function StockView({products, isAdmin, onAdd, onRestock, onEdit, onYukQabul}){
   const low = products.filter(p=>Number(p.stock_qty)<=Number(p.min_stock));
   return (
     <div>
-      <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center"}}>
+      <div style={{display:"flex",gap:10,marginBottom:16,alignItems:"center",flexWrap:"wrap"}}>
         {isAdmin && <button className="btn primary" onClick={onAdd}>+ Mahsulot</button>}
+        {isAdmin && onYukQabul && <button className="btn" onClick={onYukQabul}>+ Yuk qabul (ta'minotchi)</button>}
         <span className="pill" style={low.length?{color:"var(--red)",borderColor:"rgba(242,85,90,0.4)",background:"var(--red-bg)"}:{}}>
           Kam qoldiq: {low.length} ta
         </span>
@@ -1291,6 +1307,98 @@ function SupplierFormModal({onClose, onSave}){
   );
 }
 
+
+/* ================= YUK QABUL (ta'minotchi + ombor + kassa/qarz) ================= */
+function YukQabulModal({products, suppliers, onClose, onSave}){
+  const [supplierId, setSupplierId] = useState(suppliers[0]?.id || "");
+  const [description, setDescription] = useState("");
+  const [paid, setPaid] = useState("");
+  const [lines, setLines] = useState([{product_id:"", qty:"", cost:""}]);
+  const activeProducts = products.filter(p=>p.active !== false);
+
+  const setLine = (i, k, v) => setLines(prev => prev.map((l,idx)=> idx===i ? {...l,[k]:v} : l));
+  const addLine = () => setLines(prev => [...prev, {product_id:"", qty:"", cost:""}]);
+  const removeLine = (i) => setLines(prev => prev.length<=1 ? prev : prev.filter((_,idx)=>idx!==i));
+
+  const items = lines
+    .filter(l => l.product_id && Number(l.qty)>0)
+    .map(l => ({
+      product_id: l.product_id,
+      qty: Number(l.qty),
+      cost: Number(l.cost)||0
+    }));
+  const total = items.reduce((a,it)=> a + it.qty * (it.cost || (products.find(p=>p.id===it.product_id)?.cost||0)), 0);
+  const paidNum = Number(paid)||0;
+  const debt = Math.max(0, total - paidNum);
+  const canSave = supplierId && items.length>0 && total>0 && paidNum>=0 && paidNum<=total;
+
+  return (
+    <Modal title="Yuk qabul qilish" onClose={onClose} width={560}>
+      <div className="field"><label>Ta'minotchi</label>
+        <select className="input" value={supplierId} onChange={e=>setSupplierId(e.target.value)}>
+          <option value="">— tanlang —</option>
+          {suppliers.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+      <div className="field"><label>Izoh</label>
+        <input className="input" value={description} onChange={e=>setDescription(e.target.value)} placeholder="masalan: 5 karobka Coca-Cola"/>
+      </div>
+
+      <div className="muted" style={{marginBottom:8}}>Mahsulotlar</div>
+      {lines.map((l,i)=>(
+        <div key={i} className="grid" style={{gridTemplateColumns:"2fr 1fr 1fr auto",gap:8,marginBottom:8,alignItems:"end"}}>
+          <div className="field" style={{margin:0}}>
+            {i===0 && <label>Mahsulot</label>}
+            <select className="input" value={l.product_id} onChange={e=>{
+              const p = products.find(x=>x.id===e.target.value);
+              setLine(i,"product_id",e.target.value);
+              if(p && !l.cost) setLine(i,"cost", p.cost||"");
+            }}>
+              <option value="">—</option>
+              {activeProducts.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{margin:0}}>
+            {i===0 && <label>Miqdor</label>}
+            <input className="input num" type="number" min="1" value={l.qty} onChange={e=>setLine(i,"qty",e.target.value)}/>
+          </div>
+          <div className="field" style={{margin:0}}>
+            {i===0 && <label>Tannarx</label>}
+            <input className="input num" type="number" min="0" value={l.cost} onChange={e=>setLine(i,"cost",e.target.value)}/>
+          </div>
+          <button type="button" className="btn small" onClick={()=>removeLine(i)} disabled={lines.length<=1}>×</button>
+        </div>
+      ))}
+      <button type="button" className="btn small" onClick={addLine} style={{marginBottom:12}}>+ qator</button>
+
+      <div className="grid" style={{gridTemplateColumns:"1fr 1fr",gap:10}}>
+        <div className="field"><label>Umumiy summa (avto)</label>
+          <input className="input num" readOnly value={total||""}/>
+        </div>
+        <div className="field"><label>Hozir naqd to'langan</label>
+          <input className="input num" type="number" min="0" max={total||undefined} value={paid} onChange={e=>setPaid(e.target.value)} placeholder="0 = to'liq qarz"/>
+        </div>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:10,fontSize:14}}>
+        <span className="muted">Kassadan chiqadi:</span>
+        <span className="num" style={{color:"var(--red)",fontWeight:700}}>{money(paidNum)}</span>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",marginBottom:14,fontSize:14}}>
+        <span className="muted">Qarzimizga yoziladi:</span>
+        <span className="num" style={{color:debt>0?"var(--amber)":"var(--green)",fontWeight:700}}>{money(debt)}</span>
+      </div>
+
+      <div className="modal-actions">
+        <button className="btn primary" disabled={!canSave}
+          onClick={()=>onSave({supplierId, items, total, paid:paidNum, description})}>
+          Qabul qilish — {money(total)}
+        </button>
+        <button className="btn" onClick={onClose}>Bekor</button>
+      </div>
+    </Modal>
+  );
+}
+
 function SupplierTxModal({supplier, onClose, onSave}){
   const [total, setTotal] = useState("");
   const [paid, setPaid] = useState("");
@@ -1328,13 +1436,14 @@ function supplierDebt(supplierId, supplierTx, supplierPayments){
   return {totalDelivered, paid: paidAtDelivery+paidLater, debt: Math.max(0, totalDelivered - paidAtDelivery - paidLater)};
 }
 
-function SuppliersView({suppliers, supplierTx, supplierPayments, isStaff, onAddSupplier, onAddTx, onPay}){
+function SuppliersView({suppliers, supplierTx, supplierPayments, isStaff, onAddSupplier, onAddTx, onPay, onYukQabul}){
   const [openId, setOpenId] = useState(null);
   const CAT = {yuk:"Yuk", tamirlash:"Ta'mirlash / usta", boshqa:"Boshqa"};
   return (
     <div>
-      <div style={{display:"flex",gap:10,marginBottom:16}}>
+      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
         {isStaff && <button className="btn primary" onClick={onAddSupplier}>+ Ta'minotchi / kontragent</button>}
+        {isStaff && onYukQabul && <button className="btn" onClick={onYukQabul}>+ Yuk qabul</button>}
       </div>
       <div className="card">
         <table>
@@ -1595,6 +1704,7 @@ function BackupControls({backupData, onClearTransactions, onRestoreSuppliers}){
   const [busy, setBusy] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [showDanger, setShowDanger] = useState(false);
+  const [resetStock, setResetStock] = useState(false);
   const restoreRef = useRef(null);
 
   function exportAll(){
@@ -1646,9 +1756,13 @@ function BackupControls({backupData, onClearTransactions, onRestoreSuppliers}){
           <div style={{background:"var(--red-bg)", border:"1px solid var(--red)", borderRadius:10, padding:12}}>
             <div style={{marginBottom:8}}>Tasdiqlash uchun quyiga <b>TOZALASH</b> deb yozing:</div>
             <input className="input" value={confirmText} onChange={e=>setConfirmText(e.target.value)} style={{marginBottom:10}}/>
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,fontSize:13,cursor:"pointer"}}>
+              <input type="checkbox" checked={resetStock} onChange={e=>setResetStock(e.target.checked)}/>
+              Ombor qoldig'ini ham nolga tushirish (stock_qty = 0)
+            </label>
             <div style={{display:"flex", gap:10}}>
-              <button className="btn danger" disabled={confirmText!=="TOZALASH"} onClick={async ()=>{ await onClearTransactions(); setShowDanger(false); setConfirmText(""); }}>Ha, butunlay tozalash</button>
-              <button className="btn" onClick={()=>{ setShowDanger(false); setConfirmText(""); }}>Bekor qilish</button>
+              <button className="btn danger" disabled={confirmText!=="TOZALASH"} onClick={async ()=>{ await onClearTransactions(resetStock); setShowDanger(false); setConfirmText(""); setResetStock(false); }}>Ha, butunlay tozalash</button>
+              <button className="btn" onClick={()=>{ setShowDanger(false); setConfirmText(""); setResetStock(false); }}>Bekor qilish</button>
             </div>
           </div>
         )}
