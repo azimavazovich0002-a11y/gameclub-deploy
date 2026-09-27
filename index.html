@@ -326,7 +326,8 @@ function App({session}){
   const [now, setNow] = useState(Date.now());
   const chRef = useRef(null);
 
-  const isAdmin = profile?.role === "admin";
+  // Admin va operator teng huquqqa ega (backend'da gc_is_admin ham ikkalasini qamraydi)
+  const isAdmin = ["admin","operator"].includes(profile?.role);
   const isStaff = ["admin","operator","cashier"].includes(profile?.role);
   const canOperate = ["admin","operator"].includes(profile?.role);
   const canCash = ["admin","cashier"].includes(profile?.role);
@@ -483,7 +484,8 @@ function App({session}){
           <PosView {...{products, customers, callRpc, notify}}/>
         )}
         {view==="stock" && (
-          <StockView {...{products, isAdmin, onAdd:()=>setModal({type:"addProduct"}), onRestock:(p)=>setModal({type:"restock", product:p}), onEdit:(p)=>setModal({type:"editProduct", product:p}), onYukQabul:()=>setModal({type:"yukQabul"})}}/>
+          <StockView {...{products, isAdmin, onAdd:()=>setModal({type:"addProduct"}), onRestock:(p)=>setModal({type:"restock", product:p}), onEdit:(p)=>setModal({type:"editProduct", product:p}), onYukQabul:()=>setModal({type:"yukQabul"}),
+            onDelete:(p)=>{ if(confirm(`"${p.name}" butunlay o'chirilsinmi? Bu amalni qaytarib bo'lmaydi.`)) callRpc("gc_delete_product",{p_product_id:p.id}, "Mahsulot o'chirildi"); } }}/>
         )}
         {view==="suppliers" && (
           <SuppliersView {...{suppliers, supplierTx, supplierPayments, isStaff,
@@ -491,6 +493,7 @@ function App({session}){
             onAddTx:(s)=>setModal({type:"supplierTx", supplier:s}),
             onPay:(s)=>setModal({type:"supplierPay", supplier:s}),
             onYukQabul:()=>setModal({type:"yukQabul"}),
+            onDelete:(s)=>{ if(confirm(`"${s.name}" butunlay o'chirilsinmi? Tarixi ham o'chadi.`)) callRpc("gc_delete_supplier",{p_supplier_id:s.id}, "Ta'minotchi o'chirildi"); },
           }}/>
         )}
         {view==="clients" && (
@@ -511,11 +514,8 @@ function App({session}){
         {view==="reports" && (
           <ReportsView {...{cash, sales, sessions, expenses, products, isAdmin,
             backupData:{rooms, products, customers, sales, cash, expenses, suppliers, supplierTx, supplierPayments, customerDebts},
-            onClearTransactions:async (resetStock)=>{
-              const ok = await callRpc("gc_admin_clear_transactions", {p_reset_stock: !!resetStock},
-                resetStock ? "Tranzaksiya + ombor tozalandi" : "Tranzaksiya tarixi tozalandi");
-              return ok;
-            },
+            onClearTransactions:(resetStock)=>callRpc("gc_admin_clear_transactions",{p_reset_stock:!!resetStock}, resetStock?"Tranzaksiya + ombor tozalandi":"Tranzaksiya tarixi tozalandi"),
+            onClearAll:()=>callRpc("gc_admin_clear_all",{}, "Barcha ma'lumot tozalandi — yangi ish boshlandi"),
             onRestoreSuppliers:async (data)=>{
               const {error} = await sb.rpc("gc_admin_restore_suppliers",{p_data:data});
               if(error){ notify("Xato: "+error.message); return false; }
@@ -1127,7 +1127,7 @@ function PosView({products, customers, callRpc, notify}){
 }
 
 /* ================= OMBOR ================= */
-function StockView({products, isAdmin, onAdd, onRestock, onEdit, onYukQabul}){
+function StockView({products, isAdmin, onAdd, onRestock, onEdit, onDelete, onYukQabul}){
   const low = products.filter(p=>Number(p.stock_qty)<=Number(p.min_stock));
   return (
     <div>
@@ -1152,7 +1152,8 @@ function StockView({products, isAdmin, onAdd, onRestock, onEdit, onYukQabul}){
                 <td className="num muted">{fmt(p.min_stock)}</td>
                 {isAdmin && <td style={{whiteSpace:"nowrap"}}>
                   <button className="btn small" onClick={()=>onRestock(p)}>+ Ombor</button>{" "}
-                  <button className="btn small" onClick={()=>onEdit(p)}>✎</button>
+                  <button className="btn small" onClick={()=>onEdit(p)}>✎</button>{" "}
+                  <button className="btn small danger" title="Butunlay o'chirish" onClick={()=>onDelete(p)}>🗑</button>
                 </td>}
               </tr>
             ))}
@@ -1440,7 +1441,7 @@ function supplierDebt(supplierId, supplierTx, supplierPayments){
   return {totalDelivered, paid: paidAtDelivery+paidLater, debt: Math.max(0, totalDelivered - paidAtDelivery - paidLater)};
 }
 
-function SuppliersView({suppliers, supplierTx, supplierPayments, isStaff, onAddSupplier, onAddTx, onPay, onYukQabul}){
+function SuppliersView({suppliers, supplierTx, supplierPayments, isStaff, onAddSupplier, onAddTx, onPay, onDelete, onYukQabul}){
   const [openId, setOpenId] = useState(null);
   const CAT = {yuk:"Yuk", tamirlash:"Ta'mirlash / usta", boshqa:"Boshqa"};
   return (
@@ -1466,7 +1467,8 @@ function SuppliersView({suppliers, supplierTx, supplierPayments, isStaff, onAddS
                     <td className="num" style={{fontWeight:700, color:d.debt>0?"var(--red)":"var(--green)"}}>{money(d.debt)}</td>
                     <td style={{whiteSpace:"nowrap"}} onClick={e=>e.stopPropagation()}>
                       {isStaff && <button className="btn small" onClick={()=>onAddTx(s)}>+ Yozuv</button>}{" "}
-                      {isStaff && d.debt>0 && <button className="btn small danger" onClick={()=>onPay({...s, debt:d.debt})}>To'lash</button>}
+                      {isStaff && d.debt>0 && <button className="btn small danger" onClick={()=>onPay({...s, debt:d.debt})}>To'lash</button>}{" "}
+                      {isStaff && d.debt<=0 && <button className="btn small danger" title="O'chirish" onClick={()=>onDelete(s)}>🗑</button>}
                     </td>
                   </tr>
                   {isOpen && (
@@ -1660,7 +1662,7 @@ function ExpenseModal({onClose, onSave}){
 }
 
 /* ================= HISOBOT ================= */
-function ReportsView({cash, sales, sessions, expenses, products, isAdmin, backupData, onClearTransactions, onRestoreSuppliers}){
+function ReportsView({cash, sales, sessions, expenses, products, isAdmin, backupData, onClearTransactions, onClearAll, onRestoreSuppliers}){
   const today = new Date().toDateString();
   const tIn = cash.filter(c=>c.direction==="in" && new Date(c.created_at).toDateString()===today);
   const byCat = {};
@@ -1699,16 +1701,18 @@ function ReportsView({cash, sales, sessions, expenses, products, isAdmin, backup
         </div>
       </div>
     </div>
-    {isAdmin && <BackupControls backupData={backupData} onClearTransactions={onClearTransactions} onRestoreSuppliers={onRestoreSuppliers} />}
+    {isAdmin && <BackupControls backupData={backupData} onClearTransactions={onClearTransactions} onClearAll={onClearAll} onRestoreSuppliers={onRestoreSuppliers} />}
     </div>
   );
 }
 
-function BackupControls({backupData, onClearTransactions, onRestoreSuppliers}){
+function BackupControls({backupData, onClearTransactions, onClearAll, onRestoreSuppliers}){
   const [busy, setBusy] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [showDanger, setShowDanger] = useState(false);
   const [resetStock, setResetStock] = useState(false);
+  const [confirmAll, setConfirmAll] = useState("");
+  const [showClearAll, setShowClearAll] = useState(false);
   const restoreRef = useRef(null);
 
   function exportAll(){
@@ -1767,6 +1771,27 @@ function BackupControls({backupData, onClearTransactions, onRestoreSuppliers}){
             <div style={{display:"flex", gap:10}}>
               <button className="btn danger" disabled={confirmText!=="TOZALASH"} onClick={async ()=>{ await onClearTransactions(resetStock); setShowDanger(false); setConfirmText(""); setResetStock(false); }}>Ha, butunlay tozalash</button>
               <button className="btn" onClick={()=>{ setShowDanger(false); setConfirmText(""); setResetStock(false); }}>Bekor qilish</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div style={{marginTop:22, paddingTop:16, borderTop:"1px solid var(--line)"}}>
+        <h4 style={{color:"var(--red)", marginBottom:6}}>Butunlay yangi boshlash</h4>
+        <p className="muted" style={{marginBottom:10}}>
+          Barcha ma'lumotni o'chiradi: mahsulotlar, mijozlar, ta'minotchilar, kassa, sotuvlar,
+          xarajatlar, qarzlar, oylik to'lovlari, seanslar — HAMMASI. Faqat xonalar va xodimlar
+          (profil) qoladi. Bu amalni ORQAGA QAYTARIB BO'LMAYDI. Avval zaxira nusxa oling.
+        </p>
+        {!showClearAll ? (
+          <button className="btn small danger" onClick={()=>setShowClearAll(true)}>Barcha ma'lumotni o'chirish…</button>
+        ) : (
+          <div style={{background:"var(--red-bg)", border:"1px solid var(--red)", borderRadius:10, padding:12}}>
+            <div style={{marginBottom:8}}>Tasdiqlash uchun quyiga <b>YANGI</b> deb yozing:</div>
+            <input className="input" value={confirmAll} onChange={e=>setConfirmAll(e.target.value)} style={{marginBottom:10}}/>
+            <div style={{display:"flex", gap:10}}>
+              <button className="btn danger" disabled={confirmAll!=="YANGI"} onClick={async ()=>{ await onClearAll(); setShowClearAll(false); setConfirmAll(""); }}>Ha, hammasini o'chirish</button>
+              <button className="btn" onClick={()=>{ setShowClearAll(false); setConfirmAll(""); }}>Bekor qilish</button>
             </div>
           </div>
         )}
