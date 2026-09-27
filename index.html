@@ -321,6 +321,7 @@ function App({session}){
   const isAdmin = profile?.role === "admin";
   const isStaff = ["admin","operator","cashier"].includes(profile?.role);
   const canOperate = ["admin","operator"].includes(profile?.role);
+  const canCash = ["admin","cashier"].includes(profile?.role);
 
   function notify(msg){ setToast(msg); setTimeout(()=>setToast(""), 3000); }
 
@@ -368,9 +369,12 @@ function App({session}){
   const isAdminRef = useRef(isAdmin);
   isAdminRef.current = isAdmin;
 
+  const [salaryPayments, setSalaryPayments] = useState([]);
   async function loadProfiles(){
     const {data} = await sb.from("profiles").select("*").order("created_at");
     setProfiles(data||[]);
+    const {data: sp} = await sb.from("salary_payments").select("*").order("created_at",{ascending:false});
+    setSalaryPayments(sp||[]);
   }
 
   async function callRpc(name, params, okMsg){
@@ -379,6 +383,25 @@ function App({session}){
     if(okMsg) notify(okMsg);
     await refreshAll();
     return true;
+  }
+
+  async function importCashJson(file){
+    try{
+      const text = await file.text();
+      const arr = JSON.parse(text);
+      if(!Array.isArray(arr)) throw new Error("Fayl massiv (array) ko'rinishida bo'lishi kerak");
+      let ok=0, skip=0;
+      for(const e of arr){
+        const noteVal = (e.description || e.note || "").toString().trim();
+        const amountVal = Number(e.amount);
+        const dirVal = e.direction==="out" ? "out" : "in";
+        if(!(amountVal>0) || !noteVal){ skip++; continue; }
+        const {error} = await sb.rpc("gc_add_cash_entry", {p_direction:dirVal, p_amount:amountVal, p_note:noteVal});
+        if(error) skip++; else ok++;
+      }
+      notify(`Import: ${ok} ta qo'shildi${skip?`, ${skip} ta o'tkazib yuborildi`:""}`);
+      await refreshAll();
+    }catch(e){ notify("Import xatosi: " + e.message); }
   }
 
   const openSessionOf = (roomId)=> sessions.find(s=>s.room_id===roomId && s.status==="open");
@@ -434,6 +457,7 @@ function App({session}){
             onEnd:(room)=>setModal({type:"end", room, session:openSessionOf(room.id)}),
             onAddRoom:()=>setModal({type:"addRoom"}),
             onEditRoom:(room)=>setModal({type:"editRoom", room}),
+            onAddItem:(room, sess)=>setModal({type:"addItem", room, session:sess}),
           }}/>
         )}
         {view==="pos" && isStaff && (
@@ -446,13 +470,25 @@ function App({session}){
           <ClientsView {...{customers, isStaff, callRpc, onAdd:()=>setModal({type:"addCustomer"}), onTopup:(c)=>setModal({type:"topup", customer:c})}}/>
         )}
         {view==="cash" && (
-          <CashView {...{cash, expenses, isStaff, onExpense:()=>setModal({type:"expense"})}}/>
+          <CashView {...{cash, expenses, isStaff, canCash, onExpense:()=>setModal({type:"expense"}),
+            onManualEntry:(dir,amt,note)=>callRpc("gc_add_cash_entry",{p_direction:dir,p_amount:amt,p_note:note}, "Kassa yozuvi qo'shildi"),
+            onImportJson:importCashJson,
+          }}/>
         )}
         {view==="reports" && (
           <ReportsView {...{cash, sales, sessions, expenses, products}}/>
         )}
         {view==="staff" && isAdmin && (
-          <StaffView {...{profiles, callRpc}}/>
+          <StaffView {...{profiles, salaryPayments, callRpc,
+            onSaveSalary:async (userId, agreed, startDate)=>{
+              const {error} = await sb.from("profiles").update({agreed_salary:agreed, salary_start_date:startDate}).eq("id",userId);
+              if(error) notify("Xato: "+error.message); else { notify("Saqlandi"); await loadProfiles(); }
+            },
+            onPay:async (userId, amount, note)=>{
+              const ok = await callRpc("gc_pay_salary",{p_user_id:userId, p_amount:amount, p_note:note}, "To'lov qo'shildi");
+              if(ok) await loadProfiles();
+            },
+          }}/>
         )}
       </main>
 
@@ -501,6 +537,13 @@ function App({session}){
         const ok = await callRpc("gc_customer_topup",{p_customer_id:modal.customer.id, p_amount:amount, p_method:method});
         if(ok) setModal(null);
       }}/>}
+      {modal?.type==="addItem" && (
+        <AddItemModal room={modal.room} session={openSessionOf(modal.room.id)} products={products}
+          onClose={()=>setModal(null)}
+          onAdd={async (productId, qty)=>{ await callRpc("gc_session_add_item",{p_session_id:modal.session.id, p_product_id:productId, p_qty:qty}); }}
+          onRemove={async (productId, qty)=>{ await callRpc("gc_session_remove_item",{p_session_id:modal.session.id, p_product_id:productId, p_qty:qty}); }}
+        />
+      )}
       {modal?.type==="expense" && <ExpenseModal onClose={()=>setModal(null)} onSave={async (f)=>{
         const ok = await callRpc("gc_add_expense",{p_title:f.title, p_amount:f.amount, p_category:f.category});
         if(ok) setModal(null);
@@ -618,7 +661,7 @@ function playBeep(){
   }catch(e){ /* audio yo'q brauzerda — jim o'tkazamiz */ }
 }
 
-function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdmin, notify, onStart, onEnd, onAddRoom, onEditRoom}){
+function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdmin, notify, onStart, onEnd, onAddRoom, onEditRoom, onAddItem}){
   const warnedRef = useRef({});
   useEffect(()=>{
     rooms.forEach(room=>{
@@ -688,6 +731,7 @@ function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdm
                 </div>
               )}
               <div className="room-actions">
+                {canOperate && busy && <button className="btn small" onClick={()=>onAddItem(room, s)}>+ Mahsulot</button>}
                 {canOperate && (busy
                   ? <button className="btn danger" onClick={()=>onEnd(room)}>Yakunlash</button>
                   : <button className="btn primary" onClick={()=>onStart(room)}>Boshlash</button>)}
@@ -699,6 +743,46 @@ function RoomsView({rooms, sessions, products, customers, now, canOperate, isAdm
         {!rooms.length && <div className="card muted">Hozircha xona yo'q. "+ Xona qo'shish" tugmasini bosing.</div>}
       </div>
     </div>
+  );
+}
+
+function AddItemModal({room, session, products, onClose, onAdd, onRemove}){
+  const cart = session?.cart || [];
+  const cartTotal = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
+  return (
+    <Modal title={room.name + " — mahsulot qo'shish"} onClose={onClose}>
+      {cart.length>0 && (
+        <div className="field"><label>Hozircha qo'shilganlar</label>
+          <div className="mt">
+            {cart.map(c=>{ const p=products.find(x=>x.id===c.product_id); if(!p) return null;
+              return (
+                <div key={c.product_id} className="cart-line">
+                  <span style={{flex:1}}>{p.name}</span>
+                  <button className="qty-btn" onClick={()=>onRemove(c.product_id,1)}>−</button>
+                  <span className="num">{c.qty}</span>
+                  <button className="qty-btn" onClick={()=>onAdd(c.product_id,1)}>+</button>
+                  <span className="num" style={{width:90,textAlign:"right"}}>{money(p.price*c.qty)}</span>
+                </div>
+              );})}
+            <div style={{textAlign:"right",fontWeight:700,marginTop:8}} className="num">Jami: {money(cartTotal)}</div>
+          </div>
+        </div>
+      )}
+      <div className="field"><label>Mahsulot tanlang</label>
+        <div className="grid pos-grid">
+          {products.filter(p=>p.active).map(p=>(
+            <button key={p.id} className="prod" onClick={()=>onAdd(p.id,1)}>
+              <div className="nm">{p.name}</div>
+              <div className="pr num">{money(p.price)}</div>
+              <div className="st">qoldiq: {fmt(p.stock_qty)}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="modal-actions">
+        <button className="btn" onClick={onClose}>Yopish</button>
+      </div>
+    </Modal>
   );
 }
 
@@ -759,7 +843,10 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
   const timeAmount = roundMoney(session.tariff_per_hour * mins/60);
   const prepaid = Number(session.prepaid_amount||0);
   const dueTime = Math.max(0, timeAmount - prepaid);
-  const cartTotal = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
+  const alreadyCart = session.cart || [];
+  const alreadyTotal = alreadyCart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
+  const newCartTotal = cart.reduce((a,c)=>{ const p=products.find(x=>x.id===c.product_id); return a+(p?p.price*c.qty:0); },0);
+  const cartTotal = alreadyTotal + newCartTotal;
   const total = dueTime + cartTotal;
   const receivedNum = receivedInput===""? total : Number(receivedInput)||0;
   const extra = receivedNum - total;
@@ -790,6 +877,21 @@ function EndModal({room, session, products, customers, now, onClose, onOk}){
           </div>
         </div>
       </div>
+
+      {alreadyCart.length>0 && (
+        <div className="field"><label>Seans davomida qo'shilgan mahsulotlar</label>
+          <div className="mt">
+            {alreadyCart.map(c=>{ const p=products.find(x=>x.id===c.product_id); if(!p) return null;
+              return (
+                <div key={c.product_id} className="cart-line">
+                  <span style={{flex:1}}>{p.name}</span>
+                  <span className="num">{c.qty} ta</span>
+                  <span className="num" style={{width:90,textAlign:"right"}}>{money(p.price*c.qty)}</span>
+                </div>
+              );})}
+          </div>
+        </div>
+      )}
 
       {method!=="balance" && (
         <div className="field"><label>Kassaga qabul qilingan summa</label>
@@ -1078,12 +1180,26 @@ function TopupModal({customer, onClose, onSave}){
 }
 
 /* ================= KASSA ================= */
-function CashView({cash, expenses, isStaff, onExpense}){
+function CashView({cash, expenses, isStaff, canCash, onExpense, onManualEntry, onImportJson}){
   const today = new Date().toDateString();
   const tCash = cash.filter(c=>new Date(c.created_at).toDateString()===today);
   const tin = tCash.filter(c=>c.direction==="in").reduce((a,c)=>a+Number(c.amount),0);
   const tout = tCash.filter(c=>c.direction==="out").reduce((a,c)=>a+Number(c.amount),0);
   const TYPE = {session_payment:"Seans", sale:"Sotuv", topup:"To'ldirish", expense:"Xarajat", debt_payment:"Qarz", manual:"Qo'lda"};
+  const [dir, setDir] = useState("in");
+  const [amt, setAmt] = useState("");
+  const [note, setNote] = useState("");
+  const fileRef = useRef(null);
+
+  function exportJson(){
+    const blob = new Blob([JSON.stringify(cash, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "kassa-hisobot-"+new Date().toISOString().slice(0,10)+".json";
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div>
       <div className="grid kpis" style={{marginBottom:16}}>
@@ -1091,7 +1207,38 @@ function CashView({cash, expenses, isStaff, onExpense}){
         <div className="card kpi"><div className="kpi-accent" style={{background:"var(--red)"}}></div><div className="kpi-label">Chiqim (bugun)</div><div className="kpi-value num" style={{color:"var(--red)"}}>{money(tout)}</div></div>
         <div className="card kpi"><div className="kpi-accent" style={{background:"var(--teal)"}}></div><div className="kpi-label">Sof (bugun)</div><div className="kpi-value num">{money(tin-tout)}</div></div>
       </div>
-      {isStaff && <div style={{marginBottom:16}}><button className="btn danger" onClick={onExpense}>+ Xarajat</button></div>}
+      <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap"}}>
+        {isStaff && <button className="btn danger" onClick={onExpense}>+ Xarajat</button>}
+        <button className="btn small" onClick={exportJson}>⬇ JSON eksport</button>
+        {canCash && <>
+          <button className="btn small" onClick={()=>fileRef.current?.click()}>⬆ JSON import</button>
+          <input ref={fileRef} type="file" accept="application/json" style={{display:"none"}}
+            onChange={e=>{ const f=e.target.files?.[0]; if(f) onImportJson(f); e.target.value=""; }}/>
+        </>}
+      </div>
+
+      {canCash && (
+        <div className="card" style={{marginBottom:16, padding:12}}>
+          <h3 className="section-title" style={{marginTop:0}}>Qo'lda kirim/chiqim</h3>
+          <div className="grid" style={{gridTemplateColumns:"auto 1fr 2fr auto",gap:10,alignItems:"end"}}>
+            <div className="field" style={{margin:0}}><label>Turi</label>
+              <div className="seg">
+                <button type="button" className={dir==="in"?"on":""} onClick={()=>setDir("in")}>Kirim</button>
+                <button type="button" className={dir==="out"?"on":""} onClick={()=>setDir("out")}>Chiqim</button>
+              </div>
+            </div>
+            <div className="field" style={{margin:0}}><label>Summa</label>
+              <input className="input num" type="number" value={amt} onChange={e=>setAmt(e.target.value)}/>
+            </div>
+            <div className="field" style={{margin:0}}><label>Izoh (majburiy)</label>
+              <input className="input" value={note} onChange={e=>setNote(e.target.value)} placeholder="sababini yozing..."/>
+            </div>
+            <button className="btn primary" disabled={!(Number(amt)>0) || !note.trim()}
+              onClick={()=>{ onManualEntry(dir, Number(amt), note.trim()); setAmt(""); setNote(""); }}>Qo'shish</button>
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <h3 className="section-title">Pul oqimlari</h3>
         <table>
@@ -1177,7 +1324,54 @@ function ReportsView({cash, sales, sessions, expenses, products}){
 }
 
 /* ================= XODIMLAR ================= */
-function StaffView({profiles, callRpc}){
+function monthsElapsed(startDateStr){
+  if(!startDateStr) return 0;
+  const start = new Date(startDateStr);
+  const now = new Date();
+  let months = (now.getFullYear()-start.getFullYear())*12 + (now.getMonth()-start.getMonth());
+  if(now.getDate() < start.getDate()) months -= 1;
+  return Math.max(1, months+1);
+}
+
+function StaffRow({p, payments, onSaveSalary, onPay}){
+  const [agreed, setAgreed] = useState(p.agreed_salary ?? "");
+  const [startDate, setStartDate] = useState(p.salary_start_date ?? "");
+  const [payAmt, setPayAmt] = useState("");
+  const [payNote, setPayNote] = useState("");
+  const dirty = String(agreed) !== String(p.agreed_salary ?? "") || String(startDate) !== String(p.salary_start_date ?? "");
+
+  const months = monthsElapsed(startDate);
+  const accrued = startDate ? (Number(agreed)||0) * months : 0;
+  const paid = payments.filter(x=>x.user_id===p.id).reduce((a,x)=>a+Number(x.amount),0);
+  const balance = accrued - paid;
+
+  return (
+    <tr>
+      <td>{p.full_name}</td>
+      <td className="muted">{p.role}</td>
+      <td>
+        <input className="input num" style={{width:110}} type="number" placeholder="kelishilgan oylik"
+          value={agreed} onChange={e=>setAgreed(e.target.value)}/>
+      </td>
+      <td>
+        <input className="input" style={{width:140}} type="date" value={startDate} onChange={e=>setStartDate(e.target.value)}/>
+      </td>
+      <td className="num muted">{startDate ? months+" oy" : "—"}</td>
+      <td className="num">{startDate ? money(accrued) : "—"}</td>
+      <td className="num">{money(paid)}</td>
+      <td className="num" style={{fontWeight:700, color: balance>0?"var(--red)":"var(--green)"}}>{startDate ? money(balance) : "—"}</td>
+      <td style={{whiteSpace:"nowrap"}}>
+        {dirty && <button className="btn small" onClick={()=>onSaveSalary(p.id, Number(agreed)||0, startDate||null)}>Saqlash</button>}{" "}
+        <input className="input num" style={{width:90}} type="number" placeholder="summa" value={payAmt} onChange={e=>setPayAmt(e.target.value)}/>
+        <input className="input" style={{width:110}} placeholder="izoh" value={payNote} onChange={e=>setPayNote(e.target.value)}/>
+        <button className="btn small primary" disabled={!(Number(payAmt)>0)}
+          onClick={()=>{ onPay(p.id, Number(payAmt), payNote); setPayAmt(""); setPayNote(""); }}>To'lov</button>
+      </td>
+    </tr>
+  );
+}
+
+function StaffView({profiles, salaryPayments, callRpc, onSaveSalary, onPay}){
   const ROLE = {admin:"Admin", operator:"Operator", cashier:"Kassir"};
   return (
     <div className="card">
@@ -1200,6 +1394,44 @@ function StaffView({profiles, callRpc}){
         </tbody>
       </table>
       {!profiles.length && <div className="muted" style={{padding:12}}>Yuklanmoqda...</div>}
+
+      <h3 className="section-title" style={{marginTop:24}}>Oylik ish haqi</h3>
+      <p className="muted">Har bir xodim uchun kelishilgan oylik va hisob boshlanish sanasini kiriting. Tizim shu sanadan beri necha oy o'tganini hisoblab, kerakli summani (kelishilgan oylik × oy soni) ko'rsatadi. To'langan avanslar ayirilib, qoldiq avtomatik keyingi oyga o'tadi.</p>
+      <div style={{overflowX:"auto"}}>
+        <table>
+          <thead><tr>
+            <th>Ism</th><th>Rol</th><th>Kelishilgan oylik</th><th>Hisob boshlangan sana</th>
+            <th>O'tgan oy</th><th>Jami kerak</th><th>To'langan</th><th>Qoldiq</th><th>Avans berish</th>
+          </tr></thead>
+          <tbody>
+            {profiles.map(p=>(
+              <StaffRow key={p.id} p={p} payments={salaryPayments} onSaveSalary={onSaveSalary} onPay={onPay}/>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {salaryPayments.length>0 && (
+        <>
+          <h3 className="section-title" style={{marginTop:24}}>So'nggi to'lovlar</h3>
+          <table>
+            <thead><tr><th>Vaqt</th><th>Xodim</th><th>Summa</th><th>Izoh</th></tr></thead>
+            <tbody>
+              {salaryPayments.slice(0,20).map(sp=>{
+                const pr = profiles.find(x=>x.id===sp.user_id);
+                return (
+                  <tr key={sp.id}>
+                    <td className="num muted">{new Date(sp.created_at).toLocaleString("uz-UZ",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})}</td>
+                    <td>{pr?.full_name || "—"}</td>
+                    <td className="num">{money(sp.amount)}</td>
+                    <td className="muted">{sp.note}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </>
+      )}
     </div>
   );
 }
